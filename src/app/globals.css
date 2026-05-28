@@ -1,0 +1,112 @@
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+/* ─── Dark mode (default) ──────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-primary: #1a1c1d;
+  --bg-secondary: #333738;
+  --bg-tertiary: #3a3d3e;
+  --bg-hover: #454849;
+  --border-primary: #777066;
+  --border-secondary: #555048;
+  --border-subtle: #3a3d3e;
+  --text-primary: rgba(216, 215, 212, 0.87);
+  --text-secondary: #aaa59d;
+  --text-muted: #999187;
+  --text-dim: #777066;
+  --accent-blue: #4a9eff;
+  --accent-orange: #ff9800;
+  --accent-green: #81c784;
+  --flow-bg: #1a1c1d;
+  --flow-dot: #3a3d3e;
+  color-scheme: dark;
+}
+
+/* ─── Light mode ────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-primary: #f5f4f2;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eeece8;
+  --bg-hover: #e4e1db;
+  --border-primary: #c4bfb5;
+  --border-secondary: #d8d3c9;
+  --border-subtle: #eae6e0;
+  --text-primary: #1a1a18;
+  --text-secondary: #57534a;
+  --text-muted: #78746a;
+  --text-dim: #a09890;
+  --accent-blue: #1d6fe8;
+  --accent-orange: #e07b00;
+  --accent-green: #2e7d32;
+  --flow-bg: #f0ede8;
+  --flow-dot: #d0ccc4;
+  color-scheme: light;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────── */
+html,
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.25s ease, color 0.2s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── ReactFlow canvas ──────────────────────────────────────────── */
+.react-flow__renderer {
+  background-color: var(--flow-bg) !important;
+}
+
+.react-flow__background {
+  background-color: var(--flow-bg) !important;
+}
+
+.react-flow__background pattern circle,
+.react-flow__background pattern rect {
+  fill: var(--flow-dot) !important;
+}
+
+.react-flow__node {
+  cursor: pointer !important;
+}
+
+.react-flow__node.selected {
+  z-index: 10 !important;
+}
+
+.react-flow__controls button {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-muted) !important;
+}
+
+.react-flow__controls button svg {
+  fill: var(--text-secondary) !important;
+}
+
+.react-flow__controls button:hover {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.react-flow__minimap {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: 8px !important;
+}
+
+/* ─── KaTeX overrides ────────────────────────────────────────────── */
+[data-theme="light"] .katex {
+  color: var(--text-primary);
+}

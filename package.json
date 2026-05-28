@@ -1,0 +1,35 @@
+{
+  "name": "chattree",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "https://chattree.xyz",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "predeploy": "npm run build",
+    "deploy": "touch ./out/.nojekyll && echo 'chattree.xyz' > ./out/CNAME && gh-pages -d out -t"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.6",
+    "@mui/material": "^7.3.6",
+    "axios": "^1.13.2",
+    "markdown-to-jsx": "^9.5.0",
+    "next": "16.1.1",
+    "pako": "^2.1.0",
+    "posthog-js": "^1.310.1",
+    "react": "^19",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "^19",
+    "reactflow": "^11.11.4"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "gh-pages": "^6.3.0"
+  }
+}

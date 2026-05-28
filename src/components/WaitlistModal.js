@@ -1,0 +1,171 @@
+﻿"use client";
+import React, { useState, useEffect } from "react";
+import {
+  Modal,
+  Paper,
+  Typography,
+  Box,
+  TextField,
+  Button,
+} from "@mui/material";
+import CloudIcon from "@mui/icons-material/Cloud";
+import { useAppTheme } from "../styles/ThemeContext";
+import { getWaitlistEmail, saveWaitlistEmail } from "../utils/storage";
+
+const FORMSPREE_URL = "https://formspree.io/f/mqeklzzg";
+
+const WaitlistModal = ({ open, onClose }) => {
+  const { colors, components, typography } = useAppTheme();
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Check if user already signed up
+  useEffect(() => {
+    const savedEmail = getWaitlistEmail();
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setSubmitted(true);
+    }
+  }, []);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(FORMSPREE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          message: "ChatTree Cloud Sync Waitlist Signup",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit");
+      }
+
+      saveWaitlistEmail(email);
+      setSubmitted(true);
+    } catch (err) {
+      setError("Failed to submit. Please try again.");
+      console.error("Waitlist signup error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose}>
+      <Paper
+        sx={{
+          ...components.modal,
+          minWidth: 360,
+          maxWidth: 420,
+        }}
+      >
+        <Box sx={{ textAlign: "center" }}>
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 48,
+              height: 48,
+              borderRadius: "12px",
+              backgroundColor: colors.bg.tertiary,
+              border: `1px solid ${colors.border.secondary}`,
+              mb: 2,
+            }}
+          >
+            <CloudIcon sx={{ color: colors.text.muted, fontSize: 24 }} />
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{
+              background: `linear-gradient(135deg, ${colors.accent.blue} 0%, #82c4ff 100%)`,
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              mb: 1,
+              fontWeight: 600,
+            }}
+          >
+            Cloud Sync
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ ...typography.muted, mb: 3, lineHeight: 1.6 }}
+          >
+            Sync your conversations across devices, share branches with
+            collaborators, and never lose your chat history.
+          </Typography>
+
+          {submitted ? (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 1.5,
+                backgroundColor: "rgba(74, 158, 255, 0.08)",
+                border: "1px solid rgba(74, 158, 255, 0.2)",
+              }}
+            >
+              <Typography variant="body2" sx={typography.accent}>
+                ✓ You&apos;re on the list!
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ ...typography.dim, display: "block", mt: 0.5 }}
+              >
+                We&apos;ll notify you when cloud sync is ready.
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <TextField
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                fullWidth
+                size="small"
+                autoComplete="email"
+                type="email"
+                sx={components.textField}
+              />
+              {error && (
+                <Typography
+                  variant="caption"
+                  sx={{ color: colors.accent.delete }}
+                >
+                  {error}
+                </Typography>
+              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={!email.trim() || !email.includes("@") || isSubmitting}
+                fullWidth
+                sx={components.buttonSecondary}
+              >
+                {isSubmitting ? "Submitting..." : "Join Waitlist"}
+              </Button>
+            </Box>
+          )}
+
+          <Typography
+            variant="caption"
+            sx={{ ...typography.dim, display: "block", mt: 2 }}
+          >
+            Coming Soon
+          </Typography>
+        </Box>
+      </Paper>
+    </Modal>
+  );
+};
+
+export default WaitlistModal;
