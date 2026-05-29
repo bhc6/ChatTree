@@ -35,7 +35,6 @@ import SettingsModal from "./SettingsModal";
 import WaitlistModal from "./WaitlistModal";
 import InfoPanel from "./InfoPanel";
 import InputPanel from "./InputPanel";
-import FocusModeOverlay from "./FocusModeOverlay";
 import PanScrollToggle from "./PanScrollToggle";
 import LockScrollToggle from "./LockScrollToggle";
 import LinearChatView from "./LinearChatView";
@@ -47,7 +46,6 @@ import {
   TREE_HORIZONTAL_OFFSET,
 } from "../hooks/useChatManagement";
 import { useNodeOperations } from "../hooks/useNodeOperations";
-import { useFocusMode } from "../hooks/useFocusMode";
 import { useGroupedChats } from "../hooks/useGroupedChats";
 import { useModels } from "../hooks/useModels";
 
@@ -367,18 +365,7 @@ const TreeChatInner = () => {
     settings,
   });
 
-  // Focus mode hook
-  const {
-    focusModeNodeId,
-    focusModeNode,
-    focusModeNavigation,
-    focusModeScrollRef,
-    scrollForceIndicator,
-    navigateFocusMode,
-    handleFocusModeScroll,
-    onNodeDoubleClick,
-    closeFocusMode,
-  } = useFocusMode({ nodes, edges, setSelectedNodeId });
+
 
   // Save settings handler
   const handleSaveSettings = useCallback((newSettings) => {
@@ -727,7 +714,6 @@ const TreeChatInner = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}
-            onNodeDoubleClick={onNodeDoubleClick}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView
@@ -943,18 +929,7 @@ const TreeChatInner = () => {
         </Alert>
       </Snackbar>
 
-      {/* Focus Mode Overlay */}
-      {focusModeNodeId && (
-        <FocusModeOverlay
-          focusModeNode={focusModeNode}
-          focusModeNavigation={focusModeNavigation}
-          focusModeScrollRef={focusModeScrollRef}
-          scrollForceIndicator={scrollForceIndicator}
-          navigateFocusMode={navigateFocusMode}
-          handleFocusModeScroll={handleFocusModeScroll}
-          closeFocusMode={closeFocusMode}
-        />
-      )}
+
     </Box>
   );
 };
