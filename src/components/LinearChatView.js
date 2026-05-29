@@ -198,15 +198,68 @@ const LinearChatView = ({
   const [activeMessageId, setActiveMessageId] = useState(null);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const isProgrammaticScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef(null);
+  const isFirstRenderRef = useRef(true);
 
-  // Auto-scroll to bottom on selectedNodeId change
+  // Helper to trigger a programmatic scroll without being interrupted by handleScroll updates
+  const startProgrammaticScroll = (scrollAction) => {
+    isProgrammaticScrollingRef.current = true;
+    
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollAction();
+
+    const container = chatContainerRef.current;
+    
+    const cleanup = () => {
+      isProgrammaticScrollingRef.current = false;
+      if (container) {
+        container.removeEventListener("scrollend", cleanup);
+      }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = null;
+      }
+    };
+
+    if (container) {
+      container.addEventListener("scrollend", cleanup);
+    }
+    
+    // Safety timeout of 1000ms in case scrollend doesn't fire (e.g. browser doesn't support or scroll already at target)
+    scrollTimeoutRef.current = setTimeout(cleanup, 1000);
+  };
+
+  // Cleanup scroll timers on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Auto-scroll to bottom on selectedNodeId change (smooth on user action, instant on first load)
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      if (isFirstRenderRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+        isFirstRenderRef.current = false;
+      } else {
+        const timer = setTimeout(() => {
+          startProgrammaticScroll(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          });
+        }, 100); // 100ms layout delay ensures DOM sizes and markdown layout have settled
+        return () => clearTimeout(timer);
+      }
     }
   }, [selectedNodeId]);
 
-  // Also scroll when the last message is loading/updating
+  // Also scroll when the last message is loading/updating (always instant to feel snappy and keep up with text generation chunks)
   const lastNode = path[path.length - 1];
   const lastMessageContent = lastNode?.data?.assistantMessage || "";
   const lastMessageStatus = lastNode?.data?.status;
@@ -314,6 +367,7 @@ const LinearChatView = ({
 
   // Track scroll position to update active message dot
   const handleScroll = () => {
+    if (isProgrammaticScrollingRef.current) return;
     if (!chatContainerRef.current) return;
     const container = chatContainerRef.current;
     const containerRect = container.getBoundingClientRect();
@@ -832,11 +886,16 @@ const LinearChatView = ({
                 >
                   <Box
                     onClick={() => {
-                      document.getElementById(`msg-${userMsg.id}`)?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                      setActiveMessageId(userMsg.id);
+                      const element = document.getElementById(`msg-${userMsg.id}`);
+                      if (element) {
+                        setActiveMessageId(userMsg.id);
+                        startProgrammaticScroll(() => {
+                          element.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center",
+                          });
+                        });
+                      }
                     }}
                     sx={{
                       cursor: "pointer",
