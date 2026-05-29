@@ -310,6 +310,21 @@ const LinearChatView = ({
 
   const userMessages = chatMessages.filter((msg) => msg.role === "user");
 
+  // Scroll to selected node when selectedNodeId changes
+  useEffect(() => {
+    if (!selectedNodeId) return;
+    const timer = setTimeout(() => {
+      const selectedMsg = chatMessages.find((m) => m.nodeId === selectedNodeId);
+      if (selectedMsg) {
+        const element = document.getElementById(`msg-${selectedMsg.id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [selectedNodeId]);
+
   // Track scroll position to update active message dot
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
