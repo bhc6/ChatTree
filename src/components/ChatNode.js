@@ -84,9 +84,14 @@ const ChatNode = ({ id, data, selected }) => {
   const tooltipTitle = (
     <Box sx={{ p: 0.5 }}>
       {isRoot ? (
-        <Typography variant="caption" sx={{ fontStyle: "italic", color: colors.text.muted, fontSize: "0.75rem", display: "block" }}>
-          Root Node - Start of conversation
-        </Typography>
+        <Box>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: colors.accent.blue, display: "block", mb: 0.25 }}>
+            {data.title || "ChatTree Node"}
+          </Typography>
+          <Typography variant="caption" sx={{ fontStyle: "italic", color: colors.text.muted, fontSize: "0.72rem", display: "block" }}>
+            Start of conversation
+          </Typography>
+        </Box>
       ) : data.messages && Array.isArray(data.messages) ? (
         data.messages.map((msg, idx) => {
           const isUser = msg.role === "user";
