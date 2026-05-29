@@ -30,11 +30,67 @@ const ensureKatex = () => {
   return katexLoadPromise;
 };
 
+// Whitelist of standard HTML tags that are safe for markdown-to-jsx to parse.
+// Custom tags like <assistant>, <thought>, <system>, <user> are not in this list and will be escaped.
+const ALLOWED_HTML_TAGS = new Set([
+  "a", "abbr", "address", "area", "article", "aside", "audio", "b", "base", "bdi", "bdo", "blockquote",
+  "body", "br", "button", "canvas", "caption", "cite", "code", "col", "colgroup", "data", "datalist",
+  "dd", "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption",
+  "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr",
+  "html", "i", "iframe", "img", "input", "ins", "kbd", "label", "legend", "li", "link", "main", "map",
+  "mark", "menu", "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option", "output",
+  "p", "picture", "portal", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script",
+  "search", "section", "select", "slot", "small", "source", "span", "strong", "style", "sub",
+  "summary", "sup", "table", "tbody", "td", "template", "textarea", "tfoot", "th", "thead", "time",
+  "title", "tr", "track", "u", "ul", "var", "video", "wbr"
+]);
+
+const escapeCustomTags = (text) => {
+  if (typeof text !== "string") return text;
+  return text.replace(/<\/?([a-zA-Z0-9:-]+)(?:\s[^>]*)?>/g, (match, tagName) => {
+    const lowerTag = tagName.toLowerCase();
+    if (ALLOWED_HTML_TAGS.has(lowerTag)) {
+      return match;
+    }
+    return match.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  });
+};
+
+// ─── Math segment splitter ───────────────────────────────────────────────────
+// Splits raw text into alternating segments: { type: "text"|"math", content, display }
+// Supports: $$...$$, $...$, \[...\], \(...\), and ChatGPT-style [ \latex ] blocks
+const isMath = (str) => {
+  // If it doesn't start/end with spaces, it's a standard inline math block (strict Pandoc rules)
+  if (!/^\s/.test(str) && !/\s$/.test(str)) {
+    return true;
+  }
+  // If it is just a number
+  if (/^\s*\d+(?:\.\d+)?\s*$/.test(str)) {
+    return true;
+  }
+  // If the trimmed content is very short (e.g. single variable like x, y, n)
+  if (str.trim().length <= 2) {
+    return true;
+  }
+  // If it has spaces, check if it contains LaTeX-specific characters:
+  // - backslash (e.g. \frac, \mathbf, \alpha)
+  // - subscript/superscript/grouping: _, ^, {, }, [, ]
+  if (/[\\[\]{}_^]/.test(str)) {
+    return true;
+  }
+  // Math operators/relations: e.g., x = y, a + b, a < b
+  // We check if it has =, +, *, /, <, > AND doesn't look like plain English sentences
+  if (/[=<>+*/]/.test(str) && !/[a-zA-Z]{4,}/.test(str)) {
+    return true;
+  }
+  return false;
+};
+
 // ─── Math segment splitter ───────────────────────────────────────────────────
 // Splits raw text into alternating segments: { type: "text"|"math", content, display }
 // Supports: $$...$$, $...$, \[...\], \(...\), and ChatGPT-style [ \latex ] blocks
 const MATH_RE =
-  /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$(?!\s)(?:\\.|[^\r\n\t\f\v\\$])+(?<!\s)\$|\[ ?\\[^\]]+\])/g;
+  /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^\$\n]+?\$|\[ ?\\[^\]]+\])/g;
 
 const splitMathAndText = (raw) => {
   if (!raw || typeof raw !== "string") return [{ type: "text", content: raw || "" }];
@@ -58,14 +114,11 @@ const splitMathAndText = (raw) => {
     const start = match.index;
     const full = match[0];
 
-    // Push preceding text
-    if (start > lastIndex) {
-      segments.push({ type: "text", content: tempRaw.slice(lastIndex, start) });
-    }
-
     // Determine display mode and strip delimiters
     let display = false;
     let inner = full;
+    let isMathBlock = true;
+
     if (full.startsWith("$$")) {
       display = true;
       inner = full.slice(2, -2).trim();
@@ -74,7 +127,14 @@ const splitMathAndText = (raw) => {
       inner = full.slice(2, -2).trim();
     } else if (full.startsWith("$")) {
       display = false;
-      inner = full.slice(1, -1).trim();
+      inner = full.slice(1, -1);
+      
+      // Check if it is valid single-dollar math
+      if (!isMath(inner)) {
+        isMathBlock = false;
+      } else {
+        inner = inner.trim();
+      }
     } else if (full.startsWith("\\(")) {
       display = false;
       inner = full.slice(2, -2).trim();
@@ -84,8 +144,24 @@ const splitMathAndText = (raw) => {
       inner = full.slice(1, -1).trim();
     }
 
-    segments.push({ type: "math", content: inner, display });
-    lastIndex = match.index + full.length;
+    if (isMathBlock) {
+      // Push preceding text
+      if (start > lastIndex) {
+        segments.push({ type: "text", content: tempRaw.slice(lastIndex, start) });
+      }
+      segments.push({ type: "math", content: inner, display });
+      lastIndex = start + full.length;
+    } else {
+      // If it is not a math block, we don't consume the whole thing!
+      // We only treat the first character (the opening '$') as plain text,
+      // and we reset the regex lastIndex to search from immediately after the opening '$'.
+      if (start > lastIndex) {
+        segments.push({ type: "text", content: tempRaw.slice(lastIndex, start) });
+      }
+      segments.push({ type: "text", content: "$" });
+      lastIndex = start + 1;
+      MATH_RE.lastIndex = start + 1;
+    }
   }
 
   // Trailing text
@@ -93,7 +169,17 @@ const splitMathAndText = (raw) => {
     segments.push({ type: "text", content: tempRaw.slice(lastIndex) });
   }
 
-  const finalSegments = segments.length > 0 ? segments : [{ type: "text", content: tempRaw }];
+  const processedSegments = segments.length > 0 ? segments : [{ type: "text", content: tempRaw }];
+
+  // Merge consecutive text segments
+  const finalSegments = [];
+  for (const seg of processedSegments) {
+    if (finalSegments.length > 0 && finalSegments[finalSegments.length - 1].type === "text" && seg.type === "text") {
+      finalSegments[finalSegments.length - 1].content += seg.content;
+    } else {
+      finalSegments.push(seg);
+    }
+  }
 
   // 3. Restore code blocks in the text segments
   const restorePlaceholders = (text) => {
@@ -106,6 +192,7 @@ const splitMathAndText = (raw) => {
 
   for (const seg of finalSegments) {
     if (seg.type === "text") {
+      seg.content = escapeCustomTags(seg.content);
       seg.content = restorePlaceholders(seg.content);
     }
   }

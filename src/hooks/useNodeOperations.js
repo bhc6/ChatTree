@@ -143,8 +143,23 @@ const parseThinkingAndContent = (text, reasoningContent) => {
     }
   }
 
+  // Clean leaked tags from content
+  const cleanModelOutput = (str) => {
+    if (typeof str !== "string") return str;
+    let cleaned = str;
+    cleaned = cleaned.replace(/^\s*<assistant>\s*/i, "");
+    cleaned = cleaned.replace(/\s*<\/assistant>\s*$/i, "");
+    cleaned = cleaned.replace(/^\s*<thought>\s*/i, "");
+    cleaned = cleaned.replace(/\s*<\/thought>\s*$/i, "");
+    cleaned = cleaned.replace(/^\s*<system>\s*/i, "");
+    cleaned = cleaned.replace(/\s*<\/system>\s*$/i, "");
+    cleaned = cleaned.replace(/^\s*<user>\s*/i, "");
+    cleaned = cleaned.replace(/\s*<\/user>\s*$/i, "");
+    return cleaned;
+  };
+
   return {
-    content: content.trim(),
+    content: cleanModelOutput(content).trim(),
     thinking: thinking.trim() || undefined
   };
 };
