@@ -193,9 +193,12 @@ const InfoPanel = ({
 
   return (
     <Paper
+      elevation={0}
       sx={{
-        ...components.panel,
-        border: mergeMode
+        backgroundColor: colors.bg.secondary,
+        borderRadius: 0,
+        border: "none",
+        borderBottom: mergeMode
           ? `1px solid ${colors.accent.orange}`
           : `1px solid ${colors.border.primary}`,
         width: "100%",
