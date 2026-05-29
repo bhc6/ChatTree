@@ -252,7 +252,7 @@ const InfoPanel = ({
           <IconButton
             size="small"
             component="a"
-            href="https://github.com/bhc6/peaceful-rutherford"
+            href="https://github.com/bhc6/ChatTree"
             target="_blank"
             rel="noopener noreferrer"
             sx={{
