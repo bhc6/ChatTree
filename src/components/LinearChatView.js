@@ -199,12 +199,12 @@ const LinearChatView = ({
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
-  // Auto-scroll to bottom on path length change or loading state
+  // Auto-scroll to bottom on selectedNodeId change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [path.length]);
+  }, [selectedNodeId]);
 
   // Also scroll when the last message is loading/updating
   const lastNode = path[path.length - 1];
@@ -310,20 +310,7 @@ const LinearChatView = ({
 
   const userMessages = chatMessages.filter((msg) => msg.role === "user");
 
-  // Scroll to selected node when selectedNodeId changes
-  useEffect(() => {
-    if (!selectedNodeId) return;
-    const timer = setTimeout(() => {
-      const selectedMsg = chatMessages.find((m) => m.nodeId === selectedNodeId);
-      if (selectedMsg) {
-        const element = document.getElementById(`msg-${selectedMsg.id}`);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-      }
-    }, 80);
-    return () => clearTimeout(timer);
-  }, [selectedNodeId]);
+
 
   // Track scroll position to update active message dot
   const handleScroll = () => {
