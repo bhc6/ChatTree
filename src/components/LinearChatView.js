@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
@@ -22,6 +22,7 @@ import { useAppTheme } from "../styles/ThemeContext";
 import { renderMessageContent, getDisplayContent } from "../utils/treeUtils";
 
 const ThinkingProcess = ({ thinking, language, isStreaming }) => {
+  const { colors } = useAppTheme();
   const [collapsed, setCollapsed] = useState(false);
 
   // Auto-expand when streaming and there is content
@@ -119,6 +120,7 @@ const ThinkingProcess = ({ thinking, language, isStreaming }) => {
 };
 
 const FilePreviews = ({ files }) => {
+  const { colors, mode, radius } = useAppTheme();
   if (!files || files.length === 0) return null;
 
   return (
@@ -133,8 +135,8 @@ const FilePreviews = ({ files }) => {
               alignItems: "center",
               gap: 1,
               p: 0.75,
-              borderRadius: 1,
-              backgroundColor: "rgba(255, 255, 255, 0.08)",
+              borderRadius: radius.md,
+              backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.04)" : "rgba(255, 255, 255, 0.08)",
               border: `1px solid ${colors.border.primary}`,
               maxWidth: 240,
             }}
@@ -148,7 +150,7 @@ const FilePreviews = ({ files }) => {
                   width: 36,
                   height: 36,
                   objectFit: "cover",
-                  borderRadius: 0.5,
+                  borderRadius: radius.xs,
                 }}
               />
             ) : (
@@ -189,7 +191,7 @@ const LinearChatView = ({
   onDeleteNode,
   language = "en",
 }) => {
-  const { colors, components } = useAppTheme();
+  const { colors, components, mode, radius } = useAppTheme();
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [editMessageText, setEditMessageText] = useState("");
   const [copiedId, setCopiedId] = useState(null);
@@ -359,10 +361,12 @@ const LinearChatView = ({
         sx={{
           flex: 1,
           overflowY: "auto",
-          p: 3,
-          pr: { xs: 3, md: 8 }, // Leave space for timeline on larger screens
+          pt: { xs: 3, md: 8 },
+          pb: 16,
+          px: { xs: 3, md: 8 },
           display: "flex",
           flexDirection: "column",
+          alignItems: "center",
           backgroundColor: colors.bg.primary,
           height: "100%",
           scrollbarWidth: "thin",
@@ -373,8 +377,8 @@ const LinearChatView = ({
             backgroundColor: "transparent",
           },
           "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
-            borderRadius: "4px",
+            backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.1)",
+            borderRadius: radius.xs,
           },
         }}
       >
@@ -456,7 +460,7 @@ const LinearChatView = ({
                     display: "flex",
                     flexDirection: "column",
                     alignItems: isUser ? "flex-end" : "flex-start",
-                    maxWidth: "85%",
+                    maxWidth: isUser ? "80%" : "100%",
                     gap: 0.5,
                     "&:hover .bubble-actions": {
                       opacity: 1,
@@ -469,18 +473,26 @@ const LinearChatView = ({
                     sx={{
                       p: 2,
                       borderRadius: isUser
-                        ? "16px 16px 2px 16px"
-                        : "16px 16px 16px 2px",
+                        ? "14px 14px 4px 14px"
+                        : "14px 14px 14px 4px",
                       background: isUser
                         ? isSelected
-                          ? "linear-gradient(135deg, rgba(74, 158, 255, 0.3) 0%, rgba(30, 41, 59, 0.6) 100%)"
+                          ? mode === "light"
+                            ? "linear-gradient(135deg, #bfdbfe 0%, #dbeafe 100%)"
+                            : "linear-gradient(135deg, rgba(74, 158, 255, 0.3) 0%, rgba(30, 41, 59, 0.6) 100%)"
+                          : mode === "light"
+                          ? "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)"
                           : "linear-gradient(135deg, rgba(45, 61, 74, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%)"
                         : isSelected
-                        ? "linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.09) 100%)"
+                        ? mode === "light"
+                          ? "linear-gradient(135deg, #f5f4f2 0%, #eeece8 100%)"
+                          : "linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.09) 100%)"
+                        : mode === "light"
+                        ? "linear-gradient(135deg, #ffffff 0%, #f9f9f8 100%)"
                         : "linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.04) 100%)",
                       border: isSelected
                         ? `1px solid ${colors.accent.blue}`
-                        : `1px solid ${isUser ? "rgba(74, 158, 255, 0.1)" : "rgba(255, 255, 255, 0.05)"}`,
+                        : `1px solid ${isUser ? (mode === "light" ? "rgba(29, 111, 232, 0.15)" : "rgba(74, 158, 255, 0.1)") : (mode === "light" ? colors.border.secondary : "rgba(255, 255, 255, 0.05)")}`,
                       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                       boxShadow: isSelected
                         ? `0 0 12px rgba(74, 158, 255, 0.15)`
@@ -706,22 +718,29 @@ const LinearChatView = ({
             display: { xs: "none", md: "flex" },
             flexDirection: "column",
             alignItems: "center",
-            width: 48,
-            borderLeft: `1px solid ${colors.border.primary}`,
-            backgroundColor: "rgba(15, 23, 42, 0.35)",
-            backdropFilter: "blur(4px)",
-            py: 4,
-            height: "100%",
-            position: "relative",
+            width: 32,
+            backgroundColor: mode === "light" ? "rgba(245, 244, 242, 0.45)" : "rgba(26, 28, 29, 0.45)",
+            backdropFilter: "blur(8px)",
+            py: 2,
+            px: 0.5,
+            borderRadius: radius.xl,
+            border: `1px solid ${colors.border.subtle}`,
+            height: "auto",
+            maxHeight: "70%",
+            position: "absolute",
+            right: 16,
+            top: "50%",
+            transform: "translateY(-50%)",
             zIndex: 10,
+            boxShadow: mode === "light" ? "0 4px 12px rgba(0,0,0,0.05)" : "0 4px 12px rgba(0,0,0,0.2)",
           }}
         >
           {/* Vertical Track Line */}
           <Box
             sx={{
               position: "absolute",
-              top: 32,
-              bottom: 32,
+              top: 16,
+              bottom: 16,
               width: 2,
               background: `linear-gradient(to bottom, ${colors.accent.blue} 0%, ${colors.accent.orange || "#ff9800"} 100%)`,
               opacity: 0.3,
@@ -766,7 +785,7 @@ const LinearChatView = ({
                   <Typography variant="caption" sx={{ fontWeight: 600, display: "block", color: colors.accent.blue }}>
                     {language === "zh" ? `第 ${idx + 1} 轮对话` : `Turn ${idx + 1}`}
                   </Typography>
-                  <Typography variant="body2" sx={{ fontSize: "0.78rem", my: 0.5, color: "#fff", lineHeight: 1.4 }}>
+                  <Typography variant="body2" sx={{ fontSize: "0.78rem", my: 0.5, color: mode === "light" ? colors.text.primary : "#fff", lineHeight: 1.4 }}>
                     "{tooltipSnippet}"
                   </Typography>
                   {isMerged && (
@@ -796,15 +815,15 @@ const LinearChatView = ({
                   componentsProps={{
                     tooltip: {
                       sx: {
-                        backgroundColor: "rgba(15, 23, 42, 0.95)",
+                        backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.98)" : "rgba(15, 23, 42, 0.95)",
                         border: `1px solid ${colors.border.primary}`,
-                        borderRadius: 1.5,
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+                        borderRadius: radius.sm,
+                        boxShadow: mode === "light" ? "0 4px 20px rgba(0,0,0,0.15)" : "0 4px 20px rgba(0,0,0,0.5)",
                       }
                     },
                     arrow: {
                       sx: {
-                        color: "rgba(15, 23, 42, 0.95)",
+                        color: mode === "light" ? "rgba(255, 255, 255, 0.98)" : "rgba(15, 23, 42, 0.95)",
                       }
                     }
                   }}
@@ -845,8 +864,16 @@ const LinearChatView = ({
                           ? colors.accent.orange || "#ff9800"
                           : hasMultipleBranches
                           ? "rgba(74, 158, 255, 0.7)"
+                          : mode === "light"
+                          ? "rgba(0, 0, 0, 0.25)"
                           : "rgba(255, 255, 255, 0.25)",
-                        border: isActive ? `2px solid #ffffff` : isMerged ? `1px solid ${colors.accent.orange || "#ff9800"}` : `1px solid transparent`,
+                        border: isActive
+                          ? mode === "light"
+                            ? `2px solid ${colors.bg.primary}`
+                            : `2px solid #ffffff`
+                          : isMerged
+                          ? `1px solid ${colors.accent.orange || "#ff9800"}`
+                          : `1px solid transparent`,
                         boxShadow: isActive
                           ? `0 0 10px 3px rgba(74, 158, 255, 0.5)`
                           : isMerged

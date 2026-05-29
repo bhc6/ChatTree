@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { memo } from "react";
 import { getBezierPath, EdgeLabelRenderer } from "reactflow";
 import { Box, Tooltip } from "@mui/material";
@@ -88,7 +88,7 @@ const MergeEdge = ({
                   ? colors.accent.orange
                   : colors.border.primary,
               border: `2px solid ${colors.bg.primary}`,
-              color: colors.text.primary,
+              color: "#ffffff",
               fontSize: 10,
               fontWeight: "bold",
               transition: "all 0.2s ease",

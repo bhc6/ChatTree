@@ -7,7 +7,7 @@
  *   const { colors, components, typography, mode } = useAppTheme();
  */
 import React, { createContext, useContext, useMemo } from "react";
-import { getColors, getComponents, getTypography } from "../styles/theme";
+import { getColors, getComponents, getTypography, radius } from "../styles/theme";
 
 const ThemeContext = createContext(null);
 
@@ -19,6 +19,7 @@ export const AppThemeProvider = ({ mode = "dark", children }) => {
       colors: c,
       components: getComponents(c),
       typography: getTypography(c),
+      radius,
     };
   }, [mode]);
 
@@ -35,7 +36,7 @@ export const useAppTheme = () => {
   if (!ctx) {
     // Fallback to dark for components that haven't been wrapped yet
     const c = getColors("dark");
-    return { mode: "dark", colors: c, components: getComponents(c), typography: getTypography(c) };
+    return { mode: "dark", colors: c, components: getComponents(c), typography: getTypography(c), radius };
   }
   return ctx;
 };

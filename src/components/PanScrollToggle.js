@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Toggle icon for pan/scroll mode
  */
 import React from "react";
@@ -37,7 +37,7 @@ const PanScrollToggle = ({
       sx={{
         color: colors.text.muted,
         "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
+          backgroundColor: colors.bg.hover,
           color: colors.text.primary,
         },
       }}

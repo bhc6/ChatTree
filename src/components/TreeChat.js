@@ -17,11 +17,15 @@ import ReactFlow, {
   Panel,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { Box, Snackbar, Alert, IconButton } from "@mui/material";
+import { Box, Snackbar, Alert, IconButton, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import SettingsIcon from "@mui/icons-material/Settings";
+import CloudIcon from "@mui/icons-material/Cloud";
+import ShareIcon from "@mui/icons-material/Share";
+import MenuIcon from "@mui/icons-material/Menu";
 
 // Components
 import ChatNode from "./ChatNode";
@@ -34,7 +38,6 @@ import InputPanel from "./InputPanel";
 import FocusModeOverlay from "./FocusModeOverlay";
 import PanScrollToggle from "./PanScrollToggle";
 import LockScrollToggle from "./LockScrollToggle";
-import ArtifactModal from "./ArtifactModal";
 import LinearChatView from "./LinearChatView";
 
 // Hooks
@@ -79,7 +82,7 @@ const edgeTypes = {
 
 const TreeChatInner = () => {
   // Theme
-  const { colors } = useAppTheme();
+  const { mode, colors, radius, components } = useAppTheme();
 
   // Settings state
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -95,9 +98,6 @@ const TreeChatInner = () => {
 
   // Waitlist modal state
   const [waitlistOpen, setWaitlistOpen] = useState(false);
-
-  // Artifact modal state
-  const [artifactModalOpen, setArtifactModalOpen] = useState(false);
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
@@ -633,30 +633,6 @@ const TreeChatInner = () => {
         position: "relative",
       }}
     >
-      {/* Left Sidebar Collapse Button */}
-      <IconButton
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        sx={{
-          position: "absolute",
-          left: sidebarOpen ? 300 - 12 : 0,
-          top: "50%",
-          transform: "translateY(-50%)",
-          zIndex: 1100,
-          width: 24,
-          height: 48,
-          borderRadius: sidebarOpen ? "8px 0 0 8px" : "0 8px 8px 0",
-          backgroundColor: colors.bg.secondary,
-          border: `1px solid ${colors.border.primary}`,
-          color: colors.text.primary,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
-          transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s",
-          "&:hover": {
-            backgroundColor: colors.bg.hover,
-          },
-        }}
-      >
-        {sidebarOpen ? <ChevronLeftIcon sx={{ fontSize: 16 }} /> : <ChevronRightIcon sx={{ fontSize: 16 }} />}
-      </IconButton>
 
       {/* Left Sidebar: InfoPanel + ReactFlow tree view */}
       <Box
@@ -695,6 +671,7 @@ const TreeChatInner = () => {
             language={settings.language || "en"}
             historyExpanded={historyExpanded}
             onToggleLanguage={handleToggleLanguage}
+            onToggleSidebar={() => setSidebarOpen(false)}
           />
           {/* Vertical Toggle Button for History Panel */}
           <IconButton
@@ -714,7 +691,7 @@ const TreeChatInner = () => {
               backgroundColor: colors.bg.secondary,
               border: `1px solid ${colors.border.primary}`,
               borderTop: "none",
-              borderRadius: "0 0 8px 8px",
+              borderRadius: `0 0 ${radius.md} ${radius.md}`,
               width: 48,
               height: 16,
               boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
@@ -741,7 +718,7 @@ const TreeChatInner = () => {
             position: "relative",
             width: "100%",
             height: "100%",
-            backgroundColor: "#252627",
+            backgroundColor: colors.flow.background,
           }}
         >
           <ReactFlow
@@ -762,11 +739,11 @@ const TreeChatInner = () => {
             selectionKeyCode={null}
             panOnScroll={panOnScroll}
           >
-            <Background color="#888888" gap={20} />
+            <Background color={colors.flow.dot} gap={20} />
             <Controls
               style={{
                 backgroundColor: colors.bg.secondary,
-                borderRadius: 8,
+                borderRadius: radius.md,
                 border: `1px solid ${colors.border.primary}`,
               }}
               className="custom-controls"
@@ -809,8 +786,51 @@ const TreeChatInner = () => {
           display: "flex",
           flexDirection: "column",
           backgroundColor: colors.bg.primary,
+          position: "relative",
         }}
       >
+        {/* Floating Sidebar Toggle Button (visible only when sidebar is closed) */}
+        {!sidebarOpen && (
+          <IconButton
+            onClick={() => setSidebarOpen(true)}
+            sx={{
+              position: "absolute",
+              top: 16,
+              left: 16,
+              zIndex: 110,
+              color: colors.text.primary,
+              width: 32,
+              height: 32,
+              border: `1px solid ${colors.border.primary}`,
+              borderRadius: radius.sm,
+              backgroundColor: colors.bg.secondary,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              "&:hover": {
+                backgroundColor: colors.bg.hover,
+              },
+            }}
+            title="Open Sidebar"
+          >
+            <MenuIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        )}
+
+        {/* Top fading gradient backdrop */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 48,
+            zIndex: 105,
+            background: mode === "light"
+              ? "linear-gradient(180deg, #f5f4f2 0%, rgba(245, 244, 242, 0.7) 40%, rgba(245, 244, 242, 0) 100%)"
+              : "linear-gradient(180deg, #1a1c1d 0%, rgba(26, 28, 29, 0.7) 40%, rgba(26, 28, 29, 0) 100%)",
+            pointerEvents: "none",
+          }}
+        />
+
         {/* Message Stream */}
         <LinearChatView
           path={currentPath}
@@ -826,44 +846,58 @@ const TreeChatInner = () => {
         {/* Input panel container */}
         <Box
           sx={{
-            p: 2,
-            borderTop: `1px solid ${colors.border.primary}`,
-            backgroundColor: colors.bg.primary,
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            pt: 6,
+            pb: 4,
+            px: { xs: 3, md: 8 },
+            background: mode === "light"
+              ? "linear-gradient(180deg, rgba(245, 244, 242, 0) 0%, rgba(245, 244, 242, 0.9) 40%, #f5f4f2 100%)"
+              : "linear-gradient(180deg, rgba(26, 28, 29, 0) 0%, rgba(26, 28, 29, 0.9) 40%, #1a1c1d 100%)",
+            pointerEvents: "none",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
           }}
         >
-          <InputPanel
-            inputMessage={inputMessage}
-            onInputChange={setInputMessage}
-            onSubmit={handleSubmit}
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-            modelsList={modelsList}
-            modelsData={modelsData}
-            isRootSelected={selectedNode?.data?.isRoot && (!selectedNode?.data?.messages || selectedNode.data.messages.length === 0) && !selectedNode?.data?.userMessage}
-            isPendingMerge={!!pendingMerge}
-            pendingMerge={pendingMerge}
-            onUpdatePendingMerge={setPendingMerge}
-            onCancelPendingMerge={() => {
-              setPendingMerge(null);
-              setInputMessage("");
+          <Box
+            sx={{
+              width: "100%",
+              maxWidth: 850,
+              pointerEvents: "auto",
             }}
-            webSearchEnabled={webSearchEnabled}
-            onWebSearchToggle={() => setWebSearchEnabled((prev) => !prev)}
-            onOpenArtifacts={() => setArtifactModalOpen(true)}
-                        attachedFiles={attachedFiles}
-            onAddAttachedFile={onAddAttachedFile}
-            onRemoveAttachedFile={onRemoveAttachedFile}
-            setAttachedFiles={setAttachedFiles}
-          />
+          >
+            <InputPanel
+              inputMessage={inputMessage}
+              onInputChange={setInputMessage}
+              onSubmit={handleSubmit}
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+              modelsList={modelsList}
+              modelsData={modelsData}
+              isRootSelected={selectedNode?.data?.isRoot && (!selectedNode?.data?.messages || selectedNode.data.messages.length === 0) && !selectedNode?.data?.userMessage}
+              isPendingMerge={!!pendingMerge}
+              pendingMerge={pendingMerge}
+              onUpdatePendingMerge={setPendingMerge}
+              onCancelPendingMerge={() => {
+                setPendingMerge(null);
+                setInputMessage("");
+              }}
+              webSearchEnabled={webSearchEnabled}
+              onWebSearchToggle={() => setWebSearchEnabled((prev) => !prev)}
+              attachedFiles={attachedFiles}
+              onAddAttachedFile={onAddAttachedFile}
+              onRemoveAttachedFile={onRemoveAttachedFile}
+              setAttachedFiles={setAttachedFiles}
+            />
+          </Box>
         </Box>
       </Box>
 
-      {/* Artifact Modal */}
-      <ArtifactModal
-        open={artifactModalOpen}
-        onClose={() => setArtifactModalOpen(false)}
-        onCreateArtifact={handleCreateArtifact}
-      />
+
 
       {/* Settings Modal */}
       <SettingsModal
@@ -898,7 +932,7 @@ const TreeChatInner = () => {
             backgroundColor: colors.bg.secondary,
             color: colors.text.primary,
             border: `1px solid ${colors.border.primary}`,
-            borderRadius: 2,
+            borderRadius: radius.md,
             "& .MuiAlert-action": {
               color: colors.text.muted,
             },

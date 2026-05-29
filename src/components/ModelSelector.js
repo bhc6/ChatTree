@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Box,
@@ -17,7 +17,7 @@ import { useAppTheme } from "../styles/ThemeContext";
 import { loadRecentModels, saveRecentModel } from "../utils/storage";
 
 const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
-  const { colors } = useAppTheme();
+  const { colors, radius } = useAppTheme();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [recentModels, setRecentModels] = useState([]);
@@ -152,7 +152,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
           px: 1.5,
           py: 0.75,
           cursor: "pointer",
-          borderRadius: 1,
+          borderRadius: radius.sm,
           backgroundColor: isHighlighted
             ? colors.bg.hover
             : isSelected
@@ -218,7 +218,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
             maxWidth: 220,
             backgroundColor: "transparent",
             border: `1px solid ${colors.border.secondary}`,
-            borderRadius: 1,
+            borderRadius: radius.md,
             cursor: "pointer",
             transition: "all 0.15s ease",
             "&:hover": {
@@ -275,7 +275,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
                 sx={{
                   backgroundColor: colors.bg.secondary,
                   border: `1px solid ${colors.border.primary}`,
-                  borderRadius: 1.5,
+                  borderRadius: radius.md,
                   boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
                   overflow: "hidden",
                   minWidth: anchorRef.current?.offsetWidth || 200,
@@ -309,6 +309,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
                     }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
+                        borderRadius: radius.md,
                         color: colors.text.primary,
                         fontSize: "0.875rem",
                         "& fieldset": {
@@ -345,7 +346,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
                     },
                     "&::-webkit-scrollbar-thumb": {
                       backgroundColor: colors.border.secondary,
-                      borderRadius: 3,
+                      borderRadius: radius.xs,
                       "&:hover": {
                         backgroundColor: colors.border.primary,
                       },

@@ -24,7 +24,7 @@ import { useAppTheme } from "../styles/ThemeContext";
 import { renderMessageContent, getDisplayContent } from "../utils/treeUtils";
 
 const ChatNode = ({ id, data, selected }) => {
-  const { colors, components } = useAppTheme();
+  const { colors, components, radius } = useAppTheme();
   const [hovered, setHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editUserMessage, setEditUserMessage] = useState("");
@@ -167,7 +167,7 @@ const ChatNode = ({ id, data, selected }) => {
             },
             "&::-webkit-scrollbar-thumb": {
               background: colors.border.primary,
-              borderRadius: "2px",
+              borderRadius: radius.xs,
             },
             "&::-webkit-scrollbar-thumb:hover": {
               background: colors.text.muted,
@@ -198,7 +198,7 @@ const ChatNode = ({ id, data, selected }) => {
             : selected
             ? `2px solid ${colors.accent.blue}`
             : `1px solid ${colors.border.primary}`,
-          borderRadius: 2,
+          borderRadius: radius.xl,
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
@@ -240,7 +240,7 @@ const ChatNode = ({ id, data, selected }) => {
               zIndex: 10,
               backgroundColor: colors.bg.secondary,
               border: `1px solid ${colors.border.primary}`,
-              borderRadius: 1,
+              borderRadius: radius.sm,
               p: 0.25,
               boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
             }}

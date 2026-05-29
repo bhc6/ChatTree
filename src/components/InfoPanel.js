@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState, useMemo } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -22,6 +22,7 @@ import ShareIcon from "@mui/icons-material/Share";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
+import MenuIcon from "@mui/icons-material/Menu";
 import DraggableChatItem from "./DraggableChatItem";
 import { useAppTheme } from "../styles/ThemeContext";
 import { renderMessageContent } from "../utils/treeUtils";
@@ -47,8 +48,9 @@ const InfoPanel = ({
   language = "en",
   historyExpanded = true,
   onToggleLanguage,
+  onToggleSidebar,
 }) => {
-  const { colors, components, typography } = useAppTheme();
+  const { colors, components, typography, mode, radius } = useAppTheme();
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const mergeSelectionCount = mergeMode?.selectedNodeIds?.length || 0;
@@ -203,20 +205,54 @@ const InfoPanel = ({
       {/* Header with settings */}
       <Box
         sx={{
-          p: 1.5,
+          px: 2,
+          py: 1,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          height: 52,
+          boxSizing: "border-box",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Typography variant="subtitle2" sx={{ color: colors.accent.blue }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <IconButton
+            size="small"
+            onClick={onToggleSidebar}
+            sx={{
+              color: colors.text.muted,
+              p: 0.5,
+              "&:hover": { color: colors.text.primary },
+            }}
+            title="Collapse Sidebar"
+          >
+            <MenuIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+          <Box
+            component="img"
+            src="/favicon.svg"
+            alt="ChatTree Logo"
+            sx={{
+              width: 18,
+              height: 18,
+              display: "block",
+            }}
+          />
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: colors.accent.blue,
+              fontWeight: 700,
+              fontSize: "0.95rem",
+              letterSpacing: "0.02em",
+              lineHeight: 1,
+            }}
+          >
             ChatTree
           </Typography>
           <IconButton
             size="small"
             component="a"
-            href="https://github.com/yourusername/ChatTree"
+            href="https://github.com/bhc6/peaceful-rutherford"
             target="_blank"
             rel="noopener noreferrer"
             sx={{
@@ -288,7 +324,7 @@ const InfoPanel = ({
             ...components.textField,
             "& .MuiOutlinedInput-root": {
               ...components.textField["& .MuiOutlinedInput-root"],
-              borderRadius: "8px",
+              borderRadius: radius.md,
               py: 0.25,
             },
           }}
@@ -428,7 +464,7 @@ const InfoPanel = ({
                   },
                   "&.Mui-disabled": {
                     color: colors.text.muted,
-                    backgroundColor: "rgba(255,255,255,0.06)",
+                    backgroundColor: mode === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
                   },
                 }}
                 variant="contained"

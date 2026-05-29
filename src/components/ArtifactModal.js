@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState, useCallback, useRef } from "react";
 import {
   Modal,
@@ -72,8 +72,9 @@ const ArtifactModal = ({ open, onClose, onCreateArtifact }) => {
       <Box
         sx={{
           ...components.modal,
-          width: 450,
-          maxHeight: "80vh",
+          width: "calc(100% - 32px)",
+          maxWidth: 450,
+          maxHeight: "90vh",
           display: "flex",
           flexDirection: "column",
         }}

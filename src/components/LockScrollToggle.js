@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Toggle icon for lock scroll on node focus
  */
 import React from "react";
@@ -35,7 +35,7 @@ const LockScrollToggle = ({
       sx={{
         color: colors.text.muted,
         "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
+          backgroundColor: colors.bg.hover,
           color: colors.text.primary,
         },
       }}

@@ -113,7 +113,7 @@ const SettingsModal = ({
       <Paper
         sx={{
           ...components.modal,
-          minWidth: 400,
+          width: "calc(100% - 32px)",
           maxWidth: 500,
         }}
       >

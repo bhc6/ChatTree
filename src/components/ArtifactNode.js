@@ -21,7 +21,7 @@ import MergeIcon from "@mui/icons-material/CallMerge";
 import { useAppTheme } from "../styles/ThemeContext";
 
 const ArtifactNode = ({ id, data, selected }) => {
-  const { colors, components } = useAppTheme();
+  const { colors, components, radius } = useAppTheme();
   const [hovered, setHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -84,7 +84,7 @@ const ArtifactNode = ({ id, data, selected }) => {
           sx={{
             maxWidth: "100%",
             maxHeight: 100,
-            borderRadius: 1,
+            borderRadius: radius.sm,
             mt: 1,
             display: "block",
           }}
@@ -121,7 +121,7 @@ const ArtifactNode = ({ id, data, selected }) => {
             },
             "&::-webkit-scrollbar-thumb": {
               background: colors.border.primary,
-              borderRadius: "2px",
+              borderRadius: radius.xs,
             },
             "&::-webkit-scrollbar-thumb:hover": {
               background: colors.text.muted,
@@ -152,7 +152,7 @@ const ArtifactNode = ({ id, data, selected }) => {
             : selected
             ? `2px solid ${colors.accent.orange}`
             : `1px solid ${colors.border.primary}`,
-          borderRadius: 2,
+          borderRadius: radius.xl,
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
@@ -178,7 +178,7 @@ const ArtifactNode = ({ id, data, selected }) => {
               zIndex: 10,
               backgroundColor: colors.bg.secondary,
               border: `1px solid ${colors.border.primary}`,
-              borderRadius: 1,
+              borderRadius: radius.sm,
               p: 0.25,
               boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
             }}

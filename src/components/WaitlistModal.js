@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   Modal,
@@ -15,7 +15,7 @@ import { getWaitlistEmail, saveWaitlistEmail } from "../utils/storage";
 const FORMSPREE_URL = "https://formspree.io/f/mqeklzzg";
 
 const WaitlistModal = ({ open, onClose }) => {
-  const { colors, components, typography } = useAppTheme();
+  const { colors, components, typography, radius } = useAppTheme();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +65,7 @@ const WaitlistModal = ({ open, onClose }) => {
       <Paper
         sx={{
           ...components.modal,
-          minWidth: 360,
+          width: "calc(100% - 32px)",
           maxWidth: 420,
         }}
       >
@@ -77,7 +77,7 @@ const WaitlistModal = ({ open, onClose }) => {
               justifyContent: "center",
               width: 48,
               height: 48,
-              borderRadius: "12px",
+              borderRadius: radius.xl,
               backgroundColor: colors.bg.tertiary,
               border: `1px solid ${colors.border.secondary}`,
               mb: 2,
@@ -110,7 +110,7 @@ const WaitlistModal = ({ open, onClose }) => {
             <Box
               sx={{
                 p: 2,
-                borderRadius: 1.5,
+                borderRadius: radius.md,
                 backgroundColor: "rgba(74, 158, 255, 0.08)",
                 border: "1px solid rgba(74, 158, 255, 0.2)",
               }}

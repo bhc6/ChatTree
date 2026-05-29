@@ -207,9 +207,23 @@ export const useChatApi = (settings, options = {}) => {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error?.message || `API error: ${response.status}`
-          );
+          console.error("API Error Response Details:", errorData);
+          
+          let errorMessage = errorData.error?.message || `API error: ${response.status}`;
+          
+          // Extract upstream error from OpenRouter metadata.raw if available
+          if (errorData.error?.metadata?.raw) {
+            let rawError = errorData.error.metadata.raw;
+            try {
+              const parsedRaw = JSON.parse(rawError);
+              rawError = parsedRaw.error?.message || parsedRaw.message || rawError;
+            } catch (e) {
+              // Keep as string if not JSON
+            }
+            errorMessage += ` - Upstream details: ${rawError}`;
+          }
+          
+          throw new Error(errorMessage);
         }
 
         if (supportsStreaming) {

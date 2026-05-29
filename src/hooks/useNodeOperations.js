@@ -330,7 +330,7 @@ export const useNodeOperations = ({
             source: parentNodeId,
             target: newNodeId,
             type: "smoothstep",
-            style: { stroke: "#4a9eff", strokeWidth: 2 },
+            style: { stroke: "var(--accent-blue)", strokeWidth: 2 },
           },
         ]);
 
@@ -503,7 +503,7 @@ export const useNodeOperations = ({
           source: nodeId,
           target: newNodeId,
           type: "smoothstep",
-          style: { stroke: "#4a9eff", strokeWidth: 2 },
+          style: { stroke: "var(--accent-blue)", strokeWidth: 2 },
         },
       ]);
 
@@ -1381,7 +1381,7 @@ export const useNodeOperations = ({
           source: parentId,
           target: newNodeId,
           type: "mergeEdge",
-          style: { stroke: "#ff9800", strokeWidth: 2 },
+          style: { stroke: "var(--accent-orange)", strokeWidth: 2 },
           data: {
             isMergeEdge: true,
             contextMode: mode, // Set contextMode from user configuration
@@ -1399,7 +1399,7 @@ export const useNodeOperations = ({
         source: parentId,
         target: newNodeId,
         type: "smoothstep",
-        style: { stroke: "#ff9800", strokeWidth: 2, strokeDasharray: "5,5" },
+        style: { stroke: "var(--accent-orange)", strokeWidth: 2, strokeDasharray: "5,5" },
         data: {
           isArtifactEdge: true,
         },

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React from "react";
 import {
   Paper,
@@ -17,7 +17,6 @@ import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import CloseIcon from "@mui/icons-material/Close";
 import MergeIcon from "@mui/icons-material/CallMerge";
 import LanguageIcon from "@mui/icons-material/Language";
-import PostAddIcon from "@mui/icons-material/PostAdd";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import ImageIcon from "@mui/icons-material/Image";
 import { useAppTheme } from "../styles/ThemeContext";
@@ -42,13 +41,12 @@ const InputPanel = ({
   onCancelPendingMerge,
   webSearchEnabled,
   onWebSearchToggle,
-  onOpenArtifacts,
   attachedFiles = [],
   onAddAttachedFile,
   onRemoveAttachedFile,
   setAttachedFiles,
 }) => {
-  const { components, colors } = useAppTheme();
+  const { components, colors, mode, radius } = useAppTheme();
   const fileInputRef = React.useRef(null);
 
   // Get vision support info for tooltip
@@ -162,7 +160,9 @@ const InputPanel = ({
         gap: 1,
         p: 1.5,
         width: "100%",
-        mb: 2,
+        maxWidth: 850,
+        mx: "auto",
+        mb: 0,
       }}
     >
       {pendingMerge && (
@@ -173,7 +173,7 @@ const InputPanel = ({
             gap: 1.5,
             p: 2,
             mb: 1,
-            borderRadius: 2,
+            borderRadius: radius.xl,
             border: `1px solid ${colors.accent.orange}`,
             backgroundColor: "rgba(255, 152, 0, 0.04)",
             backdropFilter: "blur(8px)",
@@ -263,8 +263,8 @@ const InputPanel = ({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      backgroundColor: "rgba(255, 255, 255, 0.02)",
-                      borderRadius: 1,
+                      backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.02)" : "rgba(255, 255, 255, 0.02)",
+                      borderRadius: radius.sm,
                       py: 0.5,
                       px: 1,
                       border: `1px solid ${colors.border.secondary}`,
@@ -309,7 +309,7 @@ const InputPanel = ({
                           color: colors.text.muted,
                           borderColor: colors.border.secondary,
                           "&.Mui-selected": {
-                            backgroundColor: branch.contextMode === "full" ? "rgba(255, 152, 0, 0.15)" : "rgba(255, 255, 255, 0.08)",
+                            backgroundColor: branch.contextMode === "full" ? "rgba(255, 152, 0, 0.15)" : (mode === "light" ? "rgba(0, 0, 0, 0.06)" : "rgba(255, 255, 255, 0.08)"),
                             color: branch.contextMode === "full" ? colors.accent.orange : colors.text.primary,
                             fontWeight: 600,
                           },
@@ -391,14 +391,6 @@ const InputPanel = ({
           style={{ display: "none" }}
         />
 
-        <Tooltip title="Add artifact">
-          <IconButton
-            onClick={onOpenArtifacts}
-            sx={components.iconButtonToggle.base}
-          >
-            <PostAddIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
         <TextField
           id="message-input"
           className="ph-no-capture"

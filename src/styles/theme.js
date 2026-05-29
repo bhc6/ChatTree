@@ -99,6 +99,14 @@ const lightColors = {
 };
 
 // ─── Exports ─────────────────────────────────────────────────────────────────
+export const radius = {
+  xs: "4px",
+  sm: "6px",
+  md: "8px",
+  lg: "10px",
+  xl: "12px",
+  xxl: "14px",
+};
 
 export const getColors = (mode = "dark") =>
   mode === "light" ? lightColors : darkColors;
@@ -111,6 +119,7 @@ export const colors = darkColors;
 export const getComponents = (c) => ({
   textField: {
     "& .MuiOutlinedInput-root": {
+      borderRadius: radius.md,
       backgroundColor: "transparent",
       color: c.text.primary,
       "& fieldset": { borderColor: c.border.secondary },
@@ -121,6 +130,7 @@ export const getComponents = (c) => ({
   },
   textFieldWithLabel: {
     "& .MuiOutlinedInput-root": {
+      borderRadius: radius.md,
       backgroundColor: "transparent",
       color: c.text.primary,
       "& fieldset": { borderColor: c.border.secondary },
@@ -131,9 +141,10 @@ export const getComponents = (c) => ({
     "& .MuiInputLabel-root.Mui-focused": { color: c.accent.blue },
   },
   select: {
+    borderRadius: radius.md,
     backgroundColor: "transparent",
     color: c.text.primary,
-    "& .MuiOutlinedInput-notchedOutline": { borderColor: c.border.secondary },
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: c.border.secondary, borderRadius: radius.md },
     "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: c.border.primary },
     "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: c.accent.blue },
     "& .MuiSvgIcon-root": { color: c.text.muted },
@@ -141,7 +152,7 @@ export const getComponents = (c) => ({
   panel: {
     backgroundColor: c.bg.secondary,
     border: `1px solid ${c.border.primary}`,
-    borderRadius: 2,
+    borderRadius: radius.xl,
   },
   modal: {
     position: "absolute",
@@ -150,8 +161,22 @@ export const getComponents = (c) => ({
     transform: "translate(-50%, -50%)",
     backgroundColor: c.bg.secondary,
     border: `1px solid ${c.border.primary}`,
-    borderRadius: 2,
+    borderRadius: radius.xxl,
     p: 3,
+    maxHeight: "90vh",
+    overflowY: "auto",
+    boxSizing: "border-box",
+    scrollbarWidth: "thin",
+    "&::-webkit-scrollbar": {
+      width: "6px",
+    },
+    "&::-webkit-scrollbar-track": {
+      backgroundColor: "transparent",
+    },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: "rgba(128, 128, 128, 0.2)",
+      borderRadius: radius.xs,
+    },
   },
   buttonPrimary: {
     backgroundColor: "transparent",
@@ -192,7 +217,7 @@ export const getComponents = (c) => ({
   },
   divider: { borderColor: c.border.secondary },
   listItemButton: {
-    borderRadius: 1,
+    borderRadius: radius.sm,
     py: 0.5,
     "&.Mui-selected": {
       backgroundColor: c.bg.tertiary,
@@ -202,7 +227,7 @@ export const getComponents = (c) => ({
   },
   hoverBox: {
     "&:hover": { backgroundColor: c.bg.tertiary },
-    borderRadius: 1,
+    borderRadius: radius.sm,
     cursor: "pointer",
   },
   iconButtonMuted: {
@@ -243,5 +268,5 @@ export const getTypography = (c) => ({
 export const components = getComponents(darkColors);
 export const typography = getTypography(darkColors);
 
-const theme = { colors, components, typography };
+const theme = { colors, components, typography, radius };
 export default theme;

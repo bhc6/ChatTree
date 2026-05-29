@@ -34,23 +34,33 @@ const ensureKatex = () => {
 // Splits raw text into alternating segments: { type: "text"|"math", content, display }
 // Supports: $$...$$, $...$, \[...\], \(...\), and ChatGPT-style [ \latex ] blocks
 const MATH_RE =
-  /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\$[^\n$]+?\$|\\\([^\n]+?\\\)|\[ ?\\[^\]]+\])/g;
+  /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$(?!\s)(?:\\.|[^\r\n\t\f\v\\$])+(?<!\s)\$|\[ ?\\[^\]]+\])/g;
 
 const splitMathAndText = (raw) => {
   if (!raw || typeof raw !== "string") return [{ type: "text", content: raw || "" }];
+
+  const placeholders = [];
+  // 1. Extract and protect code blocks and inline code
+  const CODE_RE = /(```[\s\S]*?(?:```|$)|`[^`\n]*?(?:`|$))/g;
+  
+  let tempRaw = raw.replace(CODE_RE, (match) => {
+    const placeholder = `___CODE_PLACEHOLDER_${placeholders.length}___`;
+    placeholders.push({ placeholder, original: match });
+    return placeholder;
+  });
 
   const segments = [];
   let lastIndex = 0;
   let match;
 
   MATH_RE.lastIndex = 0;
-  while ((match = MATH_RE.exec(raw)) !== null) {
+  while ((match = MATH_RE.exec(tempRaw)) !== null) {
     const start = match.index;
     const full = match[0];
 
     // Push preceding text
     if (start > lastIndex) {
-      segments.push({ type: "text", content: raw.slice(lastIndex, start) });
+      segments.push({ type: "text", content: tempRaw.slice(lastIndex, start) });
     }
 
     // Determine display mode and strip delimiters
@@ -79,11 +89,28 @@ const splitMathAndText = (raw) => {
   }
 
   // Trailing text
-  if (lastIndex < raw.length) {
-    segments.push({ type: "text", content: raw.slice(lastIndex) });
+  if (lastIndex < tempRaw.length) {
+    segments.push({ type: "text", content: tempRaw.slice(lastIndex) });
   }
 
-  return segments.length > 0 ? segments : [{ type: "text", content: raw }];
+  const finalSegments = segments.length > 0 ? segments : [{ type: "text", content: tempRaw }];
+
+  // 3. Restore code blocks in the text segments
+  const restorePlaceholders = (text) => {
+    let result = text;
+    for (const item of placeholders) {
+      result = result.replace(item.placeholder, () => item.original);
+    }
+    return result;
+  };
+
+  for (const seg of finalSegments) {
+    if (seg.type === "text") {
+      seg.content = restorePlaceholders(seg.content);
+    }
+  }
+
+  return finalSegments;
 };
 
 // ─── Inline KaTeX renderer ───────────────────────────────────────────────────
@@ -160,7 +187,7 @@ const Markdown = dynamic(() => import("markdown-to-jsx"), {
 });
 
 const CitationAnchor = ({ href, children, ...props }) => {
-  const { colors } = useAppTheme();
+  const { colors, radius } = useAppTheme();
   // If the text content is a number, style it as a Gemini-like citation pill
   const text = String(children || "");
   const isNumber = /^\d+$/.test(text);
@@ -182,7 +209,7 @@ const CitationAnchor = ({ href, children, ...props }) => {
           fontWeight: 600,
           px: 0.6,
           py: 0.1,
-          borderRadius: 1.5,
+          borderRadius: radius.sm,
           textDecoration: "none",
           verticalAlign: "super",
           ml: 0.25,
@@ -213,7 +240,7 @@ const CitationAnchor = ({ href, children, ...props }) => {
 };
 
 const CustomCodeBlock = ({ language, code }) => {
-  const { colors, components, mode } = useAppTheme();
+  const { colors, components, mode, radius } = useAppTheme();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("code"); // "code" or "preview"
   const [mermaidSvg, setMermaidSvg] = useState("");
@@ -283,7 +310,7 @@ const CustomCodeBlock = ({ language, code }) => {
     <Box
       sx={{
         border: `1px solid ${colors.border.primary}`,
-        borderRadius: 1.5,
+        borderRadius: radius.lg,
         overflow: "hidden",
         my: 2,
         backgroundColor: colors.bg.secondary,
@@ -327,7 +354,7 @@ const CustomCodeBlock = ({ language, code }) => {
                   color: activeTab === "code" ? colors.accent.blue : colors.text.muted,
                   px: 1,
                   py: 0.25,
-                  borderRadius: 1,
+                  borderRadius: radius.sm,
                   backgroundColor: activeTab === "code" ? "rgba(74, 158, 255, 0.12)" : "transparent",
                   transition: "all 0.2s",
                 }}
@@ -343,7 +370,7 @@ const CustomCodeBlock = ({ language, code }) => {
                   color: activeTab === "preview" ? colors.accent.blue : colors.text.muted,
                   px: 1,
                   py: 0.25,
-                  borderRadius: 1,
+                  borderRadius: radius.sm,
                   backgroundColor: activeTab === "preview" ? "rgba(74, 158, 255, 0.12)" : "transparent",
                   transition: "all 0.2s",
                 }}
@@ -360,7 +387,7 @@ const CustomCodeBlock = ({ language, code }) => {
           sx={{
             ...components.iconButtonMuted,
             p: 0.5,
-            borderRadius: 1,
+            borderRadius: radius.sm,
           }}
           title="Copy Code"
         >
@@ -392,7 +419,7 @@ const CustomCodeBlock = ({ language, code }) => {
                       fontFamily: "monospace",
                       fontSize: "0.8rem",
                       backgroundColor: colors.bg.tertiary,
-                      borderRadius: 1,
+                      borderRadius: radius.sm,
                       overflowX: "auto",
                       color: colors.text.primary,
                     }}
@@ -425,7 +452,7 @@ const CustomCodeBlock = ({ language, code }) => {
                   minHeight: 180,
                   p: 2,
                   backgroundColor: "#ffffff",
-                  borderRadius: 1,
+                  borderRadius: radius.sm,
                   border: `1px solid ${colors.border.secondary}`,
                   "& svg": {
                     maxWidth: "100%",
@@ -443,7 +470,7 @@ const CustomCodeBlock = ({ language, code }) => {
                   width: "100%",
                   height: 350,
                   border: `1px solid ${colors.border.secondary}`,
-                  borderRadius: 1,
+                  borderRadius: radius.sm,
                   backgroundColor: "#ffffff",
                 }}
               />
@@ -458,7 +485,7 @@ const CustomCodeBlock = ({ language, code }) => {
               fontFamily: "monospace",
               fontSize: "0.82rem",
               overflowX: "auto",
-              backgroundColor: "rgba(0,0,0,0.15)",
+              backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.04)" : "rgba(0, 0, 0, 0.15)",
               color: colors.text.primary,
               lineHeight: 1.5,
               "& code": {
@@ -522,7 +549,7 @@ const MathAwareMarkdown = ({ content }) => {
   );
 };
 
-const getBoxSx = (c) => ({
+const getBoxSx = ({ colors: c, radius: r }) => ({
   color: c.text.primary,
   wordBreak: "break-word",
   fontSize: "0.875rem",
@@ -552,7 +579,7 @@ const getBoxSx = (c) => ({
   "& pre": {
     backgroundColor: c.bg.tertiary,
     p: 1.5,
-    borderRadius: 1,
+    borderRadius: r.lg,
     overflowX: "auto",
     my: 1,
     "& code": { backgroundColor: "transparent", p: 0 },
@@ -561,7 +588,7 @@ const getBoxSx = (c) => ({
     backgroundColor: c.bg.tertiary,
     px: 0.5,
     py: 0.25,
-    borderRadius: 0.5,
+    borderRadius: r.xs,
     fontSize: "0.85em",
     fontFamily: "monospace",
   },
@@ -579,7 +606,7 @@ const getBoxSx = (c) => ({
   "& img": {
     maxWidth: "100%",
     maxHeight: 500,
-    borderRadius: 2,
+    borderRadius: r.lg,
     border: `1px solid ${c.border.secondary}`,
     display: "block",
     my: 1.5,
@@ -587,11 +614,11 @@ const getBoxSx = (c) => ({
 });
 
 const MarkdownContent = ({ children, className, sx = {} }) => {
-  const { colors } = useAppTheme();
+  const theme = useAppTheme();
   return (
     <Box
       className={className}
-      sx={{ ...getBoxSx(colors), ...sx }}
+      sx={{ ...getBoxSx(theme), ...sx }}
     >
       <MathAwareMarkdown content={typeof children === "string" ? children : ""} />
     </Box>
