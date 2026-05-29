@@ -853,7 +853,8 @@ const TreeChatInner = () => {
             zIndex: 100,
             pt: 6,
             pb: 4,
-            px: { xs: 3, md: 8 },
+            pl: { xs: 3, md: 8 },
+            pr: { xs: 3, md: "70px" },
             background: mode === "light"
               ? "linear-gradient(180deg, rgba(245, 244, 242, 0) 0%, rgba(245, 244, 242, 0.9) 40%, #f5f4f2 100%)"
               : "linear-gradient(180deg, rgba(26, 28, 29, 0) 0%, rgba(26, 28, 29, 0.9) 40%, #1a1c1d 100%)",
