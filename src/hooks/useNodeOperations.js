@@ -352,6 +352,21 @@ export const useNodeOperations = ({
           },
           (error) => {
             console.error("Failed to generate title:", error);
+            // Local fallback title from user prompt!
+            const userMsgObj = nodeMessages.find(m => m.role === "user");
+            let userPrompt = "";
+            if (userMsgObj) {
+              if (typeof userMsgObj.content === "string") {
+                userPrompt = userMsgObj.content;
+              } else if (Array.isArray(userMsgObj.content)) {
+                userPrompt = userMsgObj.content.find(c => c.type === "text")?.text || "";
+              }
+            }
+            const cleanPrompt = userPrompt.trim();
+            const fallbackTitle = cleanPrompt
+              ? cleanPrompt.slice(0, 15) + (cleanPrompt.length > 15 ? "..." : "")
+              : (lang === "zh" ? "对话分支" : "Chat Branch");
+            updateNodeDataWithChatId(chatTarget, nodeId, { title: fallbackTitle });
           }
         );
       } catch (err) {

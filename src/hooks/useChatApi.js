@@ -206,10 +206,18 @@ export const useChatApi = (settings, options = {}) => {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("API Error Response Details:", errorData);
+          let errorData = {};
+          let rawBody = "";
+          try {
+            rawBody = await response.text();
+            errorData = JSON.parse(rawBody);
+          } catch (e) {
+            // Not a JSON response
+          }
           
-          let errorMessage = errorData.error?.message || `API error: ${response.status}`;
+          console.error("API Error Response Details:", errorData && Object.keys(errorData).length > 0 ? errorData : (rawBody || `Status: ${response.status}`));
+          
+          let errorMessage = errorData.error?.message || (rawBody.length > 200 ? rawBody.slice(0, 200) + "..." : rawBody) || `API error: ${response.status}`;
           
           // Extract upstream error from OpenRouter metadata.raw if available
           if (errorData.error?.metadata?.raw) {
