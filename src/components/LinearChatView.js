@@ -543,20 +543,16 @@ const LinearChatView = ({
                       background: isUser
                         ? isSelected
                           ? mode === "light"
-                            ? "linear-gradient(135deg, #dbeafe 0%, #f0f9ff 100%)"
-                            : "linear-gradient(135deg, #323d4f 0%, #202834 100%)"
-                          : mode === "light"
-                          ? "linear-gradient(135deg, #f0f4f8 0%, #f8fafc 100%)"
-                          : "linear-gradient(135deg, #282d37 0%, #1e222b 100%)"
+                            ? "#e6f0fa"
+                            : "#253346"
+                          : colors.bg.secondary
                         : "transparent",
                       border: isUser
                         ? isSelected
                           ? mode === "light"
                             ? "1px solid #93c5fd"
                             : "1px solid rgba(74, 158, 255, 0.5)"
-                          : mode === "light"
-                          ? "1px solid #e2e8f0"
-                          : "1px solid #2e3138"
+                          : `1px solid ${colors.border.subtle}`
                         : "none",
                       borderLeft: isUser ? undefined : "none",
                       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
