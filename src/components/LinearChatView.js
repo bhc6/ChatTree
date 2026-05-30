@@ -550,9 +550,7 @@ const LinearChatView = ({
                         : "none",
                       borderLeft: isUser ? undefined : "none",
                       transition: "border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease",
-                      boxShadow: isSelected && isUser
-                        ? `0 0 12px rgba(74, 158, 255, 0.15)`
-                        : "none",
+                      boxShadow: "none",
                       position: "relative",
                     }}
                   >
