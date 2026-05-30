@@ -51,6 +51,8 @@ const InputPanel = ({
   const fileInputRef = React.useRef(null);
   const isZh = language === "zh";
   const [isFocused, setIsFocused] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const dragCounterRef = React.useRef(0);
 
   // Translation dictionary
   const t = {
@@ -95,11 +97,8 @@ const InputPanel = ({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const fileList = Array.from(files);
+  const processFiles = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
 
     // 1. Create file objects with parsing status and add them to the parent state
     const initialFiles = fileList.map((file) => ({
@@ -129,9 +128,68 @@ const InputPanel = ({
         );
       }
     }
+  };
+
+  const handleFileChange = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    await processFiles(Array.from(files));
 
     // Clear input so same file can be selected again
     e.target.value = "";
+  };
+
+  const handlePaste = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const filesToUpload = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) {
+          filesToUpload.push(file);
+        }
+      }
+    }
+
+    if (filesToUpload.length > 0) {
+      e.preventDefault();
+      await processFiles(filesToUpload);
+    }
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    dragCounterRef.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      await processFiles(Array.from(files));
+    }
   };
 
   const handleSubmit = (e) => {
@@ -180,6 +238,10 @@ const InputPanel = ({
     <Paper
       component="form"
       onSubmit={handleSubmit}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       sx={{
         ...components.panel,
         display: "flex",
@@ -190,21 +252,25 @@ const InputPanel = ({
         maxWidth: 850,
         mx: "auto",
         mb: 0,
-        border: isFocused
+        border: isDragging
+          ? `2px dashed ${colors.accent.blue}`
+          : isFocused
           ? isPendingMerge
             ? `1px solid ${colors.accent.orange}`
             : `1px solid ${colors.accent.blue}`
           : isPendingMerge
           ? `1px solid ${colors.accent.orange}`
           : `1px solid ${colors.border.primary}`,
-        boxShadow: isFocused
+        boxShadow: isDragging
+          ? `0 0 16px rgba(74, 158, 255, 0.25)`
+          : isFocused
           ? isPendingMerge
             ? `0 0 12px rgba(255, 152, 0, 0.2)`
             : `0 0 12px rgba(74, 158, 255, 0.15)`
           : isPendingMerge
           ? `0 0 12px rgba(255, 152, 0, 0.15)`
           : "none",
-        transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+        transition: "border-color 0.2s ease, box-shadow 0.2s ease, border-style 0.2s ease",
       }}
     >
       {pendingMerge && (
@@ -445,6 +511,7 @@ const InputPanel = ({
           value={inputMessage}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           fullWidth
