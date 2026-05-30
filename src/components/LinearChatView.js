@@ -545,20 +545,18 @@ const LinearChatView = ({
                           ? mode === "light"
                             ? "#e6f0fa"
                             : "#253346"
-                          : colors.bg.secondary
+                          : colors.bg.tertiary
                         : "transparent",
                       border: isUser
                         ? isSelected
                           ? mode === "light"
                             ? "1px solid #93c5fd"
                             : "1px solid rgba(74, 158, 255, 0.5)"
-                          : `1px solid ${colors.border.subtle}`
+                          : "1px solid transparent"
                         : "none",
                       borderLeft: isUser ? undefined : "none",
                       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: isSelected && isUser
-                        ? `0 0 12px rgba(74, 158, 255, 0.15)`
-                        : "none",
+                      boxShadow: "none",
                       position: "relative",
                     }}
                   >
