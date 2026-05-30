@@ -12,6 +12,7 @@ import {
   findLowestCommonAncestorMultiple,
   getDescendants,
 } from "../utils/treeUtils";
+import { loadChatState, saveChatState } from "../utils/storage";
 
 // Helper to get immediate children of a node
 const getImmediateChildren = (nodeId, edges) => {
@@ -35,7 +36,7 @@ export const DEFAULT_MERGE_PROMPT_ZH =
   "请结合两个分支的观点并继续对话，指出每个分支的关键点。";
 
 // Helper to format user message content, integrating uploaded files
-const formatUserMessageWithFiles = (text, files, selectedModel, modelsData, isOpenRouter = false) => {
+const formatUserMessageWithFiles = (text, files, selectedModel, modelsData, isOpenRouter = false, lang = "en") => {
   if (!files || files.length === 0) {
     return text;
   }
@@ -43,14 +44,17 @@ const formatUserMessageWithFiles = (text, files, selectedModel, modelsData, isOp
   const supportsVision = modelSupportsVision(selectedModel, modelsData);
   const imageFiles = files.filter(f => f.type?.startsWith("image/"));
   const documentFiles = files.filter(f => !f.type?.startsWith("image/"));
+  const isZh = lang === "zh";
 
   // Build the text portion with all extracted document contents (PDF, Word, Excel, TXT, etc.)
   let textWithDocs = text || "";
   if (documentFiles.length > 0) {
-    textWithDocs += "\n\n=== ATTACHED DOCUMENTS/FILES ===";
+    textWithDocs += isZh ? "\n\n=== 已附带的文档/文件 ===" : "\n\n=== ATTACHED DOCUMENTS/FILES ===";
     documentFiles.forEach(tf => {
       const contentStr = tf.textContent || tf.content || "";
-      textWithDocs += `\n\n[File: ${tf.name}]\n\`\`\`\n${contentStr}\n\`\`\``;
+      textWithDocs += isZh 
+        ? `\n\n[文件: ${tf.name}]\n\`\`\`\n${contentStr}\n\`\`\``
+        : `\n\n[File: ${tf.name}]\n\`\`\`\n${contentStr}\n\`\`\``;
     });
   }
 
@@ -68,20 +72,25 @@ const formatUserMessageWithFiles = (text, files, selectedModel, modelsData, isOp
 
   // Otherwise, return a simple text string (with warning if images were omitted)
   if (imageFiles.length > 0 && !supportsVision) {
-    textWithDocs += `\n\n[Warning: ${imageFiles.length} image(s) attached but the selected model "${selectedModel}" does not support vision. Images were omitted.]`;
+    textWithDocs += isZh
+      ? `\n\n[警告: 附带了 ${imageFiles.length} 张图片，但所选模型 "${selectedModel}" 不支持视觉(Vision)。图片已被忽略。]`
+      : `\n\n[Warning: ${imageFiles.length} image(s) attached but the selected model "${selectedModel}" does not support vision. Images were omitted.]`;
   }
 
   return textWithDocs;
 };
 
 // Helper to format branch conversation history using different context engineering strategies
-const formatBranchMessages = (messages, contextMode, globalMergeStrategy) => {
+const formatBranchMessages = (messages, contextMode, globalMergeStrategy, lang = "en") => {
   if (!messages || messages.length === 0) return "";
+  const isZh = lang === "zh";
 
   // If contextMode is SINGLE, only use the latest assistant message (or latest message overall if no assistant)
   if (contextMode === CONTEXT_MODE.SINGLE || contextMode === "single") {
     const lastMsg = [...messages].reverse().find(m => m.role === "assistant") || messages[messages.length - 1];
-    return `(Latest message only)\n${lastMsg.role.toUpperCase()}: ${lastMsg.content}\n\n`;
+    return isZh
+      ? `(仅限最新消息)\n${lastMsg.role === "user" ? "用户" : "助手"}: ${lastMsg.content}\n\n`
+      : `(Latest message only)\n${lastMsg.role.toUpperCase()}: ${lastMsg.content}\n\n`;
   }
 
   // Full history formatting based on strategy
@@ -90,24 +99,26 @@ const formatBranchMessages = (messages, contextMode, globalMergeStrategy) => {
     const userPrompts = messages.filter(m => m.role === "user");
     const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
     
-    let text = "(Milestones Mode - intermediate turns omitted)\n";
+    let text = isZh ? "(核心里程碑模式 - 已忽略中间对话轮次)\n" : "(Milestones Mode - intermediate turns omitted)\n";
     userPrompts.forEach((up, idx) => {
-      text += `USER Prompt ${idx + 1}: ${up.content}\n\n`;
+      text += isZh ? `用户提问 ${idx + 1}: ${up.content}\n\n` : `USER Prompt ${idx + 1}: ${up.content}\n\n`;
     });
     if (lastAssistant) {
-      text += `ASSISTANT (Final Output): ${lastAssistant.content}\n\n`;
+      text += isZh ? `助手最终回答: ${lastAssistant.content}\n\n` : `ASSISTANT (Final Output): ${lastAssistant.content}\n\n`;
     }
     return text;
   }
 
   if (globalMergeStrategy === "summary") {
     // Summary strategy: condensed versions of all messages
-    let text = "(Condensed Turn-by-turn Transcript)\n";
+    let text = isZh ? "(缩略对话副本)\n" : "(Condensed Turn-by-turn Transcript)\n";
     messages.forEach(msg => {
       const displayContent = msg.content.length > 250
-        ? msg.content.substring(0, 250) + "...\n[Content condensed to fit context window]"
+        ? msg.content.substring(0, 250) + (isZh ? "...\n[为适配上下文窗口已进行缩略处理]" : "...\n[Content condensed to fit context window]")
         : msg.content;
-      text += `${msg.role.toUpperCase()}: ${displayContent}\n\n`;
+      text += isZh
+        ? `${msg.role === "user" ? "用户" : "助手"}: ${displayContent}\n\n`
+        : `${msg.role.toUpperCase()}: ${displayContent}\n\n`;
     });
     return text;
   }
@@ -115,7 +126,9 @@ const formatBranchMessages = (messages, contextMode, globalMergeStrategy) => {
   // "raw" strategy: Full transcripts
   let text = "";
   messages.forEach(msg => {
-    text += `${msg.role.toUpperCase()}: ${msg.content}\n\n`;
+    text += isZh
+      ? `${msg.role === "user" ? "用户" : "助手"}: ${msg.content}\n\n`
+      : `${msg.role.toUpperCase()}: ${msg.content}\n\n`;
   });
   return text;
 };
@@ -183,8 +196,15 @@ export const useNodeOperations = ({
   setPendingMerge,
   setInputMessage,
   settings,
+  activeChatId,
 }) => {
   const { fitView } = useReactFlow();
+
+  // Track the current activeChatId to prevent stale closures and cross-talk during background stream updates
+  const activeChatIdRef = useRef(activeChatId);
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
 
   // Keep refs to latest nodes/edges for use in async callbacks
   const nodesRef = useRef(nodes);
@@ -202,27 +222,109 @@ export const useNodeOperations = ({
   // Track if cascade is active to prevent duplicate triggers
   const cascadeActiveRef = useRef(false);
 
-  // Update node data
+  // Background update buffering for localStorage
+  const pendingSaveTimeouts = useRef({});
+  const pendingUpdates = useRef({});
+
+  // Flush all buffered updates for a specific chat ID to localStorage
+  const flushPendingUpdates = useCallback((chatId) => {
+    if (pendingSaveTimeouts.current[chatId]) {
+      clearTimeout(pendingSaveTimeouts.current[chatId]);
+      delete pendingSaveTimeouts.current[chatId];
+    }
+
+    const updates = pendingUpdates.current[chatId];
+    if (!updates) return;
+    delete pendingUpdates.current[chatId];
+
+    const state = loadChatState(chatId);
+    if (!state || !state.nodes) return;
+
+    let stateChanged = false;
+    const updatedNodes = state.nodes.map((node) => {
+      const nodeUpdate = updates[node.id];
+      if (nodeUpdate) {
+        stateChanged = true;
+        return {
+          ...node,
+          data: { ...node.data, ...nodeUpdate },
+        };
+      }
+      return node;
+    });
+
+    if (stateChanged) {
+      saveChatState(
+        chatId,
+        updatedNodes,
+        state.edges,
+        state.selectedNodeId,
+        state.nodeIdCounter
+      );
+    }
+  }, []);
+
+  // Update node data helper that filters updates to active React state and queues localStorage saves
+  const updateNodeDataWithChatId = useCallback(
+    (targetChatId, nodeId, dataUpdate) => {
+      // 1. Update React state if the target chat matches the current active view
+      if (activeChatIdRef.current === targetChatId) {
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.id === nodeId) {
+              return {
+                ...node,
+                data: { ...node.data, ...dataUpdate },
+              };
+            }
+            return node;
+          })
+        );
+      }
+
+      // 2. Buffer for localStorage update
+      if (!pendingUpdates.current[targetChatId]) {
+        pendingUpdates.current[targetChatId] = {};
+      }
+      pendingUpdates.current[targetChatId][nodeId] = {
+        ...pendingUpdates.current[targetChatId][nodeId],
+        ...dataUpdate,
+      };
+
+      if (dataUpdate.status === "complete" || dataUpdate.status === "error") {
+        flushPendingUpdates(targetChatId);
+      } else {
+        if (!pendingSaveTimeouts.current[targetChatId]) {
+          pendingSaveTimeouts.current[targetChatId] = setTimeout(() => {
+            flushPendingUpdates(targetChatId);
+          }, 600);
+        }
+      }
+    },
+    [setNodes, flushPendingUpdates]
+  );
+
+  // Clean up timeouts and flush remaining updates on unmount
+  useEffect(() => {
+    return () => {
+      Object.keys(pendingUpdates.current).forEach((chatId) => {
+        flushPendingUpdates(chatId);
+      });
+    };
+  }, [flushPendingUpdates]);
+
+  // Update node data fallback delegating to activeChatId
   const updateNodeData = useCallback(
     (nodeId, dataUpdate) => {
-      setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id === nodeId) {
-            return {
-              ...node,
-              data: { ...node.data, ...dataUpdate },
-            };
-          }
-          return node;
-        })
-      );
+      updateNodeDataWithChatId(activeChatIdRef.current, nodeId, dataUpdate);
     },
-    [setNodes]
+    [updateNodeDataWithChatId]
   );
 
   // Generate a short 2-5 words title from dialogue turns using LLM
   const generateNodeTitle = useCallback(
-    async (nodeId, nodeMessages) => {
+    async (nodeId, nodeMessages, targetChatId) => {
+      const chatTarget = targetChatId || activeChatIdRef.current;
       if (!nodeMessages || nodeMessages.length === 0) return;
       const model = selectedModel;
 
@@ -246,7 +348,7 @@ export const useNodeOperations = ({
           () => {}, // no chunk needed
           (fullResponse) => {
             const cleanedTitle = fullResponse.trim().replace(/^["']|["']$/g, "").replace(/\.$/, "");
-            updateNodeData(nodeId, { title: cleanedTitle });
+            updateNodeDataWithChatId(chatTarget, nodeId, { title: cleanedTitle });
           },
           (error) => {
             console.error("Failed to generate title:", error);
@@ -256,7 +358,7 @@ export const useNodeOperations = ({
         console.error("Error in generateNodeTitle:", err);
       }
     },
-    [selectedModel, sendChatRequest, updateNodeData, settings]
+    [selectedModel, sendChatRequest, updateNodeDataWithChatId, settings]
   );
 
   // Send message and create new node or append to current node
@@ -268,11 +370,18 @@ export const useNodeOperations = ({
       const parentNode = nodes.find((n) => n.id === parentNodeId);
       const isArtifact = parentNode?.type === "artifactNode";
 
-      if (isArtifact) {
-        const colonIndex = parentNodeId.indexOf(":");
-        const chatPrefix =
-          colonIndex !== -1 ? parentNodeId.substring(0, colonIndex + 1) : "";
+      const colonIndex = parentNodeId.indexOf(":");
+      const chatPrefix =
+        colonIndex !== -1 ? parentNodeId.substring(0, colonIndex + 1) : "";
+      const targetChatId = chatPrefix
+        ? chatPrefix.slice(0, -1)
+        : (parentNode?.data?.chatId || activeChatId);
 
+      const updateThisNode = (nodeId, dataUpdate) => {
+        updateNodeDataWithChatId(targetChatId, nodeId, dataUpdate);
+      };
+
+      if (isArtifact) {
         const newNodeId = `${chatPrefix}node-${nodeIdCounterRef.current++}`;
         const existingChildren = edges.filter((e) => e.source === parentNodeId);
         const xOffset = existingChildren.length * 160;
@@ -295,7 +404,7 @@ export const useNodeOperations = ({
 
         // Format user message with uploaded files
         const isOpenRouter = settings?.apiUrl?.includes("openrouter.ai");
-        let finalUserMessage = formatUserMessageWithFiles(finalUserText, files, selectedModel, modelsData, isOpenRouter);
+        let finalUserMessage = formatUserMessageWithFiles(finalUserText, files, selectedModel, modelsData, isOpenRouter, settings?.language || "en");
 
         // Append artifact image if applicable and model supports vision
         if (isArtifact && parentNode.data?.artifactType === "image" && modelSupportsVision(selectedModel, modelsData)) {
@@ -330,7 +439,7 @@ export const useNodeOperations = ({
             title: typeof userMessage === "string" ? (userMessage.substring(0, 20) + (userMessage.length > 20 ? "..." : "")) : "New Chat",
             status: "loading",
             isRoot: false,
-            chatId: chatPrefix ? chatPrefix.slice(0, -1) : undefined,
+            chatId: targetChatId,
           },
         };
 
@@ -361,7 +470,7 @@ export const useNodeOperations = ({
           selectedModel,
           (partialResponse, partialReasoning) => {
             const parsed = parseThinkingAndContent(partialResponse, partialReasoning);
-            updateNodeData(newNodeId, {
+            updateThisNode(newNodeId, {
               messages: [newUserMessageObj, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }],
               status: "loading",
             });
@@ -369,23 +478,23 @@ export const useNodeOperations = ({
           (fullResponse, fullReasoning) => {
             const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
             const finalMessages = [newUserMessageObj, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }];
-            updateNodeData(newNodeId, {
+            updateThisNode(newNodeId, {
               messages: finalMessages,
               status: "complete",
               model: selectedModel,
             });
-            generateNodeTitle(newNodeId, finalMessages);
+            generateNodeTitle(newNodeId, finalMessages, targetChatId);
           },
           (error) => {
             console.error(error);
-            updateNodeData(newNodeId, {
+            updateThisNode(newNodeId, {
               error: error.message,
               status: "error",
             });
           }
         );
 
-        setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
+        setTimeout(() => fitView({ nodes: [{ id: parentNodeId }, { id: newNodeId }], padding: 0.2, duration: 300, maxZoom: 1 }), 100);
       } else {
         // Appending to existing chatNode parentNodeId
         const node = nodes.find((n) => n.id === parentNodeId);
@@ -402,13 +511,13 @@ export const useNodeOperations = ({
         }
 
         const isOpenRouter = settings?.apiUrl?.includes("openrouter.ai");
-        const finalUserMessage = formatUserMessageWithFiles(userMessage, files, selectedModel, modelsData, isOpenRouter);
+        const finalUserMessage = formatUserMessageWithFiles(userMessage, files, selectedModel, modelsData, isOpenRouter, settings?.language || "en");
         const newUserMessageObj = { role: "user", content: finalUserMessage, model: selectedModel, files: files };
         const newAssistantMessageObj = { role: "assistant", content: "", model: selectedModel };
         const updatedMessages = [...initialMsgs, newUserMessageObj];
         const messagesWithAssistant = [...updatedMessages, newAssistantMessageObj];
 
-        updateNodeData(parentNodeId, {
+        updateThisNode(parentNodeId, {
           messages: messagesWithAssistant,
           status: "loading",
         });
@@ -426,7 +535,7 @@ export const useNodeOperations = ({
           selectedModel,
           (partialResponse, partialReasoning) => {
             const parsed = parseThinkingAndContent(partialResponse, partialReasoning);
-            updateNodeData(parentNodeId, {
+            updateThisNode(parentNodeId, {
               messages: [...updatedMessages, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }],
               status: "loading",
             });
@@ -434,19 +543,19 @@ export const useNodeOperations = ({
           (fullResponse, fullReasoning) => {
             const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
             const finalMessages = [...updatedMessages, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }];
-            updateNodeData(parentNodeId, {
+            updateThisNode(parentNodeId, {
               messages: finalMessages,
               status: "complete",
               model: selectedModel,
             });
             // Auto-summarize title on the first complete turn
             if (finalMessages.length === 2 && (!node.data?.title || node.data.title === "New Branch")) {
-              generateNodeTitle(parentNodeId, finalMessages);
+              generateNodeTitle(parentNodeId, finalMessages, targetChatId);
             }
           },
           (error) => {
             console.error(error);
-            updateNodeData(parentNodeId, {
+            updateThisNode(parentNodeId, {
               error: error.message,
               status: "error",
             });
@@ -461,7 +570,7 @@ export const useNodeOperations = ({
       modelsData,
       setNodes,
       setEdges,
-      updateNodeData,
+      updateNodeDataWithChatId,
       fitView,
       sendChatRequest,
       isSharedView,
@@ -469,6 +578,7 @@ export const useNodeOperations = ({
       setSelectedNodeId,
       nodeIdCounterRef,
       generateNodeTitle,
+      activeChatId,
     ]
   );
 
@@ -503,7 +613,7 @@ export const useNodeOperations = ({
           title: "New Branch",
           status: "complete",
           isRoot: false,
-          chatId: chatPrefix ? chatPrefix.slice(0, -1) : undefined,
+          chatId: chatPrefix ? chatPrefix.slice(0, -1) : activeChatId,
         },
       };
 
@@ -525,7 +635,7 @@ export const useNodeOperations = ({
       setSelectedNodeId(newNodeId);
       setTimeout(() => {
         document.getElementById("message-input")?.focus();
-        fitView({ padding: 0.2, duration: 300 });
+        fitView({ nodes: [{ id: nodeId }, { id: newNodeId }], padding: 0.2, duration: 300, maxZoom: 1 });
       }, 100);
     },
     [
@@ -538,6 +648,7 @@ export const useNodeOperations = ({
       isSharedView,
       commitSharedChat,
       fitView,
+      activeChatId,
     ]
   );
 
@@ -559,6 +670,11 @@ export const useNodeOperations = ({
         const parentNodeId = parentEdge?.source || "root";
         const path = getPathToNode(parentNodeId, currentNodes, currentEdges);
         const parentContext = buildConversationFromPath(path);
+
+        const targetChatId = node.data?.chatId || activeChatId;
+        const updateThisNode = (nId, dataUpdate) => {
+          updateNodeDataWithChatId(targetChatId, nId, dataUpdate);
+        };
 
         // Retrieve existing messages array or fallbacks
         let messages = [];
@@ -614,21 +730,25 @@ export const useNodeOperations = ({
           const baseContextForMerge = buildConversationFromPath(lcaPath);
 
           // Build merged context with all branches
+          const isZh = settings?.language === "zh";
           const branchCount = branches.length;
-          let mergedContext = `You are continuing a conversation that has branched into ${branchCount} paths. Here are all branches:\n\n`;
+          let mergedContext = isZh
+            ? `您正在继续一个已分叉为 ${branchCount} 条路径的对话。以下是所有分支的上下文：\n\n`
+            : `You are continuing a conversation that has branched into ${branchCount} paths. Here are all branches:\n\n`;
 
           branches.forEach((branch, index) => {
             const branchLabel = String.fromCharCode(65 + index); // A, B, C, D, ...
-            mergedContext += `=== BRANCH ${branchLabel} ===\n`;
+            mergedContext += isZh ? `=== 分支 ${branchLabel} ===\n` : `=== BRANCH ${branchLabel} ===\n`;
             const formattedText = formatBranchMessages(
               branch.messages,
               branch.contextMode || "full",
-              globalMergeStrategy
+              globalMergeStrategy,
+              settings?.language || "en"
             );
             mergedContext += formattedText;
           });
 
-          mergedContext += "=== END BRANCHES ===\n\n";
+          mergedContext += isZh ? "=== 分支结束 ===\n\n" : "=== END BRANCHES ===\n\n";
           // node.data.userMessage is the original instruction
           mergedContext += node.data.userMessage || (typeof messages[0]?.content === 'string' ? messages[0].content : JSON.stringify(messages[0].content));
 
@@ -655,7 +775,7 @@ export const useNodeOperations = ({
               model: selectedModel,
             };
 
-            updateNodeData(nodeId, {
+            updateThisNode(nodeId, {
               messages: currentMessages,
               status: "loading",
               error: null,
@@ -692,7 +812,7 @@ export const useNodeOperations = ({
                     content: parsed.content,
                     thinking: parsed.thinking,
                   };
-                  updateNodeData(nodeId, {
+                  updateThisNode(nodeId, {
                     messages: currentMessages,
                     status: "loading",
                   });
@@ -704,7 +824,7 @@ export const useNodeOperations = ({
                     content: parsed.content,
                     thinking: parsed.thinking,
                   };
-                  updateNodeData(nodeId, {
+                  updateThisNode(nodeId, {
                     messages: currentMessages,
                     status: "loading",
                   });
@@ -723,19 +843,19 @@ export const useNodeOperations = ({
 
         try {
           await regenerateTurn(0);
-          updateNodeData(nodeId, {
+          updateThisNode(nodeId, {
             messages: currentMessages,
             status: "complete",
             model: selectedModel,
           });
           // Auto-summarize title if needed
           if (currentMessages.length === 2 && (!node.data?.title || node.data.title === "New Branch")) {
-            await generateNodeTitle(nodeId, currentMessages);
+            await generateNodeTitle(nodeId, currentMessages, targetChatId);
           }
           resolve();
         } catch (error) {
           console.error(error);
-          updateNodeData(nodeId, {
+          updateThisNode(nodeId, {
             error: error.message,
             status: "error",
           });
@@ -743,7 +863,7 @@ export const useNodeOperations = ({
         }
       });
     },
-    [selectedModel, updateNodeData, sendChatRequest, generateNodeTitle]
+    [selectedModel, updateNodeDataWithChatId, sendChatRequest, generateNodeTitle, activeChatId]
   );
 
   // Cascade regeneration to all descendants after a node is edited
@@ -818,6 +938,11 @@ export const useNodeOperations = ({
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return;
 
+      const targetChatId = node.data?.chatId || activeChatId;
+      const updateThisNode = (nId, dataUpdate) => {
+        updateNodeDataWithChatId(targetChatId, nId, dataUpdate);
+      };
+
       // Check if this is a merged node AND the first message is being edited
       if (node?.data?.isMergedNode && node.data.mergeParents && messageIndex === 0) {
         const mergeParents = node.data.mergeParents;
@@ -849,27 +974,31 @@ export const useNodeOperations = ({
         const baseContext = buildConversationFromPath(lcaPath);
 
         // Build merged context with all branches
+        const isZh = settings?.language === "zh";
         const branchCount = branches.length;
-        let mergedContext = `You are continuing a conversation that has branched into ${branchCount} paths. Here are all branches:\n\n`;
+        let mergedContext = isZh
+          ? `您正在继续一个已分叉为 ${branchCount} 条路径 of 对话。以下是所有分支的上下文：\n\n`
+          : `You are continuing a conversation that has branched into ${branchCount} paths. Here are all branches:\n\n`;
 
         branches.forEach((branch, index) => {
           const branchLabel = String.fromCharCode(65 + index); // A, B, C, D, ...
-          mergedContext += `=== BRANCH ${branchLabel} ===\n`;
+          mergedContext += isZh ? `=== 分支 ${branchLabel} ===\n` : `=== BRANCH ${branchLabel} ===\n`;
           const formattedText = formatBranchMessages(
             branch.messages,
             branch.contextMode || "full",
-            globalMergeStrategy
+            globalMergeStrategy,
+            settings?.language || "en"
           );
           mergedContext += formattedText;
         });
 
-        mergedContext += "=== END BRANCHES ===\n\n";
+        mergedContext += isZh ? "=== 分支结束 ===\n\n" : "=== END BRANCHES ===\n\n";
         mergedContext += newUserMessage;
 
         const userMessageObj = { role: "user", content: mergedContext, model: selectedModel };
         const assistantMessageObj = { role: "assistant", content: "", model: selectedModel };
 
-        updateNodeData(nodeId, {
+        updateThisNode(nodeId, {
           userMessage: newUserMessage,
           messages: [userMessageObj, assistantMessageObj],
           status: "loading",
@@ -885,14 +1014,14 @@ export const useNodeOperations = ({
           conversationMessages,
           selectedModel,
           (partialResponse) => {
-            updateNodeData(nodeId, {
+            updateThisNode(nodeId, {
               messages: [userMessageObj, { role: "assistant", content: partialResponse, model: selectedModel }],
               status: "loading",
             });
           },
           async (fullResponse) => {
             const finalMessages = [userMessageObj, { role: "assistant", content: fullResponse, model: selectedModel }];
-            updateNodeData(nodeId, {
+            updateThisNode(nodeId, {
               messages: finalMessages,
               status: "complete",
               model: selectedModel,
@@ -902,7 +1031,7 @@ export const useNodeOperations = ({
           },
           (error) => {
             console.error(error);
-            updateNodeData(nodeId, {
+            updateThisNode(nodeId, {
               error: error.message,
               status: "error",
             });
@@ -934,13 +1063,13 @@ export const useNodeOperations = ({
       const editedMessageOriginal = currentMessages[messageIndex];
       const originalFiles = editedMessageOriginal?.files || [];
       const isOpenRouter = settings?.apiUrl?.includes("openrouter.ai");
-      const formattedUserMessage = formatUserMessageWithFiles(newUserMessage, originalFiles, selectedModel, modelsData, isOpenRouter);
+      const formattedUserMessage = formatUserMessageWithFiles(newUserMessage, originalFiles, selectedModel, modelsData, isOpenRouter, settings?.language || "en");
       
       const messagesBeforeEdit = currentMessages.slice(0, messageIndex);
       const newUserMessageObj = { role: "user", content: formattedUserMessage, model: selectedModel, files: originalFiles };
       const emptyAssistantMessageObj = { role: "assistant", content: "", model: selectedModel };
 
-      updateNodeData(nodeId, {
+      updateThisNode(nodeId, {
         messages: [...messagesBeforeEdit, newUserMessageObj, emptyAssistantMessageObj],
         status: "loading",
         error: null,
@@ -957,7 +1086,7 @@ export const useNodeOperations = ({
         selectedModel,
         (partialResponse, partialReasoning) => {
           const parsed = parseThinkingAndContent(partialResponse, partialReasoning);
-          updateNodeData(nodeId, {
+          updateThisNode(nodeId, {
             messages: [
               ...messagesBeforeEdit,
               newUserMessageObj,
@@ -973,21 +1102,21 @@ export const useNodeOperations = ({
             newUserMessageObj,
             { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel },
           ];
-          updateNodeData(nodeId, {
+          updateThisNode(nodeId, {
             messages: finalMessages,
             status: "complete",
             model: selectedModel,
           });
           // Auto-summarize title if needed
           if (finalMessages.length === 2 && (!node.data?.title || node.data.title === "New Branch")) {
-            generateNodeTitle(nodeId, finalMessages);
+            generateNodeTitle(nodeId, finalMessages, targetChatId);
           }
           // Cascade to children after this node completes
           cascadeRegenerateDescendants(nodeId);
         },
         (error) => {
           console.error(error);
-          updateNodeData(nodeId, {
+          updateThisNode(nodeId, {
             error: error.message,
             status: "error",
           });
@@ -998,12 +1127,13 @@ export const useNodeOperations = ({
       nodes,
       edges,
       selectedModel,
-      updateNodeData,
+      updateNodeDataWithChatId,
       sendChatRequest,
       isSharedView,
       commitSharedChat,
       cascadeRegenerateDescendants,
       generateNodeTitle,
+      activeChatId,
     ]
   );
 
@@ -1281,39 +1411,41 @@ export const useNodeOperations = ({
       const chatBranches = branches.filter((b) => !b.isArtifact);
 
       // Build merged prompt with text content
+      const isZh = settings?.language === "zh";
       const branchCount = chatBranches.length + textArtifacts.length;
       let mergedPrompt = "";
 
       if (branchCount > 0) {
-        mergedPrompt = `You are continuing a conversation that includes ${
-          branchCount +
-          (supportsVision && imageArtifacts.length > 0
-            ? imageArtifacts.length
-            : 0)
-        } sources. Here are the sources:\n\n`;
+        const totalSources = branchCount + (supportsVision && imageArtifacts.length > 0 ? imageArtifacts.length : 0);
+        mergedPrompt = isZh
+          ? `您正在继续一个包含 ${totalSources} 个参考来源的对话。以下是参考资料：\n\n`
+          : `You are continuing a conversation that includes ${totalSources} sources. Here are the sources:\n\n`;
 
         chatBranches.forEach((branch, index) => {
           const branchLabel = String.fromCharCode(65 + index);
-          mergedPrompt += `=== BRANCH ${branchLabel} ===\n`;
+          mergedPrompt += isZh ? `=== 分支 ${branchLabel} ===\n` : `=== BRANCH ${branchLabel} ===\n`;
           const formattedText = formatBranchMessages(
             branch.messages,
             branch.contextMode || "full",
-            globalMergeStrategy
+            globalMergeStrategy,
+            settings?.language || "en"
           );
           mergedPrompt += formattedText;
         });
 
         textArtifacts.forEach((branch) => {
-          mergedPrompt += `=== ARTIFACT: ${branch.artifactName} ===\n`;
+          mergedPrompt += isZh ? `=== 文本制品: ${branch.artifactName} ===\n` : `=== ARTIFACT: ${branch.artifactName} ===\n`;
           mergedPrompt += `${branch.artifactContent}\n\n`;
         });
 
         if (supportsVision && imageArtifacts.length > 0) {
-          mergedPrompt += `=== IMAGES ===\n`;
-          mergedPrompt += `${imageArtifacts.length} image(s) attached below.\n\n`;
+          mergedPrompt += isZh ? `=== 图片制品 ===\n` : `=== IMAGES ===\n`;
+          mergedPrompt += isZh
+            ? `下方附带了 ${imageArtifacts.length} 张图片。\n\n`
+            : `${imageArtifacts.length} image(s) attached below.\n\n`;
         }
 
-        mergedPrompt += "=== END SOURCES ===\n\n";
+        mergedPrompt += isZh ? "=== 参考资料结束 ===\n\n" : "=== END SOURCES ===\n\n";
       }
 
       mergedPrompt += userPrompt;
@@ -1348,6 +1480,11 @@ export const useNodeOperations = ({
       const chatPrefix =
         colonIndex !== -1 ? firstParentId.substring(0, colonIndex + 1) : "";
 
+      const targetChatId = chatPrefix ? chatPrefix.slice(0, -1) : activeChatId;
+      const updateThisNode = (nId, dataUpdate) => {
+        updateNodeDataWithChatId(targetChatId, nId, dataUpdate);
+      };
+
       const newNodeId = `${chatPrefix}node-${nodeIdCounterRef.current++}`;
 
       // Calculate position - average x, max (y + height) + gap
@@ -1375,7 +1512,7 @@ export const useNodeOperations = ({
           status: "loading",
           isRoot: false,
           isMergedNode: true,
-          chatId: chatPrefix ? chatPrefix.slice(0, -1) : undefined,
+          chatId: targetChatId,
           mergeParents: chatNodeIds, // Only chat nodes as parents for tree structure
           mergedArtifacts: selectedNodeIds.filter((id) => {
             const node = nodes.find((n) => n.id === id);
@@ -1438,7 +1575,7 @@ export const useNodeOperations = ({
         selectedModel,
         (partialResponse, partialReasoning) => {
           const parsed = parseThinkingAndContent(partialResponse, partialReasoning);
-          updateNodeData(newNodeId, {
+          updateThisNode(newNodeId, {
             messages: [
               userMessageObj,
               { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel },
@@ -1452,23 +1589,26 @@ export const useNodeOperations = ({
             userMessageObj,
             { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel },
           ];
-          updateNodeData(newNodeId, {
+          updateThisNode(newNodeId, {
             messages: finalMessages,
             status: "complete",
             model: selectedModel,
           });
-          generateNodeTitle(newNodeId, finalMessages);
+          generateNodeTitle(newNodeId, finalMessages, targetChatId);
         },
         (error) => {
           console.error(error);
-          updateNodeData(newNodeId, {
+          updateThisNode(newNodeId, {
             error: error.message,
             status: "error",
           });
         }
       );
 
-      setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
+      setTimeout(() => {
+        const nodesToFit = [...selectedNodeIds.map(id => ({ id })), { id: newNodeId }];
+        fitView({ nodes: nodesToFit, padding: 0.2, duration: 300, maxZoom: 1 });
+      }, 100);
     },
     [
       pendingMerge,
@@ -1477,7 +1617,7 @@ export const useNodeOperations = ({
       selectedModel,
       setNodes,
       setEdges,
-      updateNodeData,
+      updateNodeDataWithChatId,
       fitView,
       sendChatRequest,
       setSelectedNodeId,
@@ -1485,6 +1625,7 @@ export const useNodeOperations = ({
       nodeIdCounterRef,
       generateNodeTitle,
       modelsData,
+      activeChatId,
     ]
   );
 

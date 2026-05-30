@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Focus Mode Overlay component - displays node content in full-screen overlay
  */
 import React from "react";
@@ -229,7 +229,7 @@ const FocusModeOverlay = ({
             </Box>
             <MarkdownContent
               className="ph-no-capture"
-              sx={{ fontSize: "1rem", lineHeight: 1.7 }}
+              sx={{ fontSize: "1.0625rem", lineHeight: 1.7 }}
             >
               {focusModeNode.data?.userMessage}
             </MarkdownContent>
@@ -265,7 +265,7 @@ const FocusModeOverlay = ({
             </Box>
             <MarkdownContent
               className="ph-no-capture"
-              sx={{ fontSize: "1rem", lineHeight: 1.7 }}
+              sx={{ fontSize: "1.0625rem", lineHeight: 1.7 }}
             >
               {focusModeNode.data?.assistantMessage}
             </MarkdownContent>

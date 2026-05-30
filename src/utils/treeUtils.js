@@ -160,3 +160,99 @@ export const getDisplayContent = (content) => {
   }
   return textContent;
 };
+
+// Subtree-width-based tree layout algorithm to position nodes symmetrically in a tree structure
+export const layoutTree = (nodes, edges) => {
+  if (!nodes || nodes.length === 0) return [];
+
+  // Find all root nodes
+  const roots = nodes.filter(n => n.data?.isRoot || n.id === 'root' || n.id.endsWith(':root'));
+  if (roots.length === 0) return nodes;
+
+  // Build children mapping (adjacency list)
+  const adjList = {};
+  edges.forEach(e => {
+    if (!adjList[e.source]) adjList[e.source] = [];
+    adjList[e.source].push(e.target);
+  });
+
+  // Calculate subtree leaf counts
+  const leafCounts = {};
+  const visited = new Set();
+  const getSubtreeLeafCount = (nodeId) => {
+    if (visited.has(nodeId)) return 0;
+    visited.add(nodeId);
+
+    const children = adjList[nodeId] || [];
+    if (children.length === 0) {
+      leafCounts[nodeId] = 1;
+      return 1;
+    }
+    let count = 0;
+    for (const childId of children) {
+      count += getSubtreeLeafCount(childId);
+    }
+    leafCounts[nodeId] = count === 0 ? 1 : count;
+    return leafCounts[nodeId];
+  };
+
+  roots.forEach(root => getSubtreeLeafCount(root.id));
+
+  const nodePositions = {};
+  const leafWidth = 155; // Compact horizontal node spacing
+  const verticalGap = 90; // Compact vertical node spacing
+
+  // Lay out each root's subtree
+  let currentXStart = 0;
+  const visitedLayout = new Set();
+  
+  roots.forEach(root => {
+    const rootLeaves = leafCounts[root.id] || 1;
+    const layoutSubtree = (nodeId, xStart, depth) => {
+      if (visitedLayout.has(nodeId)) return;
+      visitedLayout.add(nodeId);
+
+      const children = adjList[nodeId] || [];
+      const numLeaves = leafCounts[nodeId] || 1;
+      
+      // Center the node in its allocated subtree width
+      // Offset by 70px (half of node width 140) to center the node center at the coordinate
+      const x = xStart + (numLeaves * leafWidth) / 2 - 70;
+      const y = 30 + depth * verticalGap; // Start at y = 30 for compactness
+      
+      nodePositions[nodeId] = { x, y };
+      
+      let childXStart = xStart;
+      for (const childId of children) {
+        const childLeaves = leafCounts[childId] || 1;
+        layoutSubtree(childId, childXStart, depth + 1);
+        childXStart += childLeaves * leafWidth;
+      }
+    };
+    
+    layoutSubtree(root.id, currentXStart, 0);
+    currentXStart += rootLeaves * leafWidth + 60; // Add 60px gap between separate root trees
+  });
+
+  // Lay out detached artifact nodes to the right of the conversation trees
+  const positionedIds = new Set(Object.keys(nodePositions));
+  const detachedNodes = nodes.filter(n => !positionedIds.has(n.id));
+  
+  let detachedX = currentXStart + 30;
+  let detachedY = 30;
+  detachedNodes.forEach(node => {
+    nodePositions[node.id] = { x: detachedX, y: detachedY };
+    detachedY += 80; // Compact vertical gap for detached/artifact nodes
+  });
+
+  // Map nodes to their newly calculated positions
+  return nodes.map(node => {
+    if (nodePositions[node.id]) {
+      return {
+        ...node,
+        position: nodePositions[node.id]
+      };
+    }
+    return node;
+  });
+};

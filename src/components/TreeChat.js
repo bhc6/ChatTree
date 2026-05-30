@@ -26,8 +26,10 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import CloudIcon from "@mui/icons-material/Cloud";
 import ShareIcon from "@mui/icons-material/Share";
 import MenuIcon from "@mui/icons-material/Menu";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 
 // Components
+// ... (omitting other imports for brevity but keeping line-by-line structure)
 import ChatNode from "./ChatNode";
 import ArtifactNode from "./ArtifactNode";
 import MergeEdge from "./MergeEdge";
@@ -52,7 +54,7 @@ import { useModels } from "../hooks/useModels";
 // Utilities
 import { AppThemeProvider, useAppTheme } from "../styles/ThemeContext";
 import { initialNodes, initialEdges } from "../utils/constants";
-import { getPathToNode, buildConversationFromPath } from "../utils/treeUtils";
+import { getPathToNode, buildConversationFromPath, layoutTree } from "../utils/treeUtils";
 import {
   loadChatState,
   saveChatState,
@@ -363,9 +365,20 @@ const TreeChatInner = () => {
     setPendingMerge,
     setInputMessage,
     settings,
+    activeChatId,
   });
 
-
+  // Auto layout handler to tidy nodes dynamically
+  const handleAutoLayout = useCallback(() => {
+    setNodes((nds) => {
+      const newNodes = layoutTree(nds, edges);
+      // Let ReactFlow apply positions then fit the view smoothly
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 400 });
+      }, 50);
+      return newNodes;
+    });
+  }, [edges, setNodes, fitView]);
 
   // Save settings handler
   const handleSaveSettings = useCallback((newSettings) => {
@@ -523,6 +536,16 @@ const TreeChatInner = () => {
     return buildConversationFromPath(currentPath);
   }, [currentPath]);
 
+  // Check if current active path has any conversation messages
+  const hasMessages = useMemo(() => {
+    return currentPath.some((node) => {
+      if (node.data?.isRoot) {
+        return (node.data.messages && node.data.messages.length > 0) || node.data.userMessage;
+      }
+      return true;
+    });
+  }, [currentPath]);
+
   // Inject callbacks into all nodes
   const nodesWithCallbacks = useMemo(() => {
     const selectedNodeIds = mergeMode?.selectedNodeIds || [];
@@ -532,6 +555,7 @@ const TreeChatInner = () => {
           ...node,
           data: {
             ...node.data,
+            language: settings.language || "en",
             onEditArtifact: handleEditArtifact,
             onDeleteArtifact: handleDeleteArtifact,
             onMergeNode: handleMergeNode,
@@ -546,6 +570,7 @@ const TreeChatInner = () => {
         ...node,
         data: {
           ...node.data,
+          language: settings.language || "en",
           onAddBranch: handleAddBranch,
           onEditNode: handleEditNode,
           onDeleteNode: handleDeleteNode,
@@ -570,6 +595,7 @@ const TreeChatInner = () => {
     handleDeleteArtifact,
     mergeMode,
     lockScrollOnNodeFocus,
+    settings.language,
   ]);
 
   // Inject callbacks into all edges
@@ -578,10 +604,11 @@ const TreeChatInner = () => {
       ...edge,
       data: {
         ...edge.data,
+        language: settings.language || "en",
         onToggleContextMode: handleToggleContextMode,
       },
     }));
-  }, [edges, handleToggleContextMode]);
+  }, [edges, handleToggleContextMode, settings.language]);
 
   // Handle form submit
   const handleSubmit = useCallback(
@@ -606,6 +633,14 @@ const TreeChatInner = () => {
       }
     },
     [setFocusedChatId]
+  );
+
+  // Handle node double click to focus/center on it
+  const onNodeDoubleClick = useCallback(
+    (_, node) => {
+      fitView({ nodes: [{ id: node.id }], padding: 0.2, duration: 400, maxZoom: 1 });
+    },
+    [fitView]
   );
 
   return (
@@ -714,6 +749,7 @@ const TreeChatInner = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}
+            onNodeDoubleClick={onNodeDoubleClick}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView
@@ -758,6 +794,16 @@ const TreeChatInner = () => {
                   size="small"
                   asIcon
                 />
+              </ControlButton>
+              <ControlButton
+                onClick={handleAutoLayout}
+                title={
+                  settings.language === "zh"
+                    ? "自动整理树状图"
+                    : "Auto Layout / Tidy Tree"
+                }
+              >
+                <AutoFixHighIcon sx={{ fontSize: 16 }} />
               </ControlButton>
             </Controls>
           </ReactFlow>
@@ -814,73 +860,195 @@ const TreeChatInner = () => {
               ? "linear-gradient(180deg, #f5f4f2 0%, rgba(245, 244, 242, 0.7) 40%, rgba(245, 244, 242, 0) 100%)"
               : "linear-gradient(180deg, #1a1c1d 0%, rgba(26, 28, 29, 0.7) 40%, rgba(26, 28, 29, 0) 100%)",
             pointerEvents: "none",
+            opacity: hasMessages ? 1 : 0,
+            transition: "opacity 0.6s ease",
           }}
         />
 
-        {/* Message Stream */}
-        <LinearChatView
-          path={currentPath}
-          nodes={nodes}
-          edges={edges}
-          selectedNodeId={selectedNodeId}
-          onSelectNode={setSelectedNodeId}
-          onEditNode={handleEditNode}
-          onDeleteNode={handleDeleteNode}
-          language={settings.language || "en"}
-        />
+        {/* Message Stream Wrapper */}
+        <Box
+          sx={{
+            flex: hasMessages ? 1 : 0,
+            height: hasMessages ? "100%" : 0,
+            opacity: hasMessages ? 1 : 0,
+            overflow: "hidden",
+            transition: "opacity 0.6s ease, flex 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+            width: "100%",
+            zIndex: 10,
+          }}
+        >
+          <LinearChatView
+            path={currentPath}
+            nodes={nodes}
+            edges={edges}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={setSelectedNodeId}
+            onEditNode={handleEditNode}
+            onDeleteNode={handleDeleteNode}
+            language={settings.language || "en"}
+          />
+        </Box>
 
-        {/* Input panel container */}
+        {/* Unified Input Panel & Branding Container */}
         <Box
           sx={{
             position: "absolute",
+            top: 0,
             bottom: 0,
             left: 0,
             right: 0,
-            zIndex: 100,
-            pt: 6,
-            pb: 4,
-            pl: { xs: 3, md: 8 },
-            pr: { xs: 3, md: "70px" },
-            background: mode === "light"
-              ? "linear-gradient(180deg, rgba(245, 244, 242, 0) 0%, rgba(245, 244, 242, 0.9) 40%, #f5f4f2 100%)"
-              : "linear-gradient(180deg, rgba(26, 28, 29, 0) 0%, rgba(26, 28, 29, 0.9) 40%, #1a1c1d 100%)",
-            pointerEvents: "none",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            pointerEvents: "none", // Allow clicks to pass through to scroll messages
           }}
         >
+          {/* Top Spacer */}
+          <Box
+            sx={{
+              flex: 1,
+              transition: "flex 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15)",
+            }}
+          />
+
+          {/* Branding & Greeting */}
+          <Box
+            sx={{
+              opacity: hasMessages ? 0 : 1,
+              maxHeight: hasMessages ? 0 : 400,
+              overflow: "hidden",
+              transition: "opacity 0.4s ease, max-height 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15), margin-bottom 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1.5,
+              mb: hasMessages ? 0 : 4,
+              pointerEvents: hasMessages ? "none" : "auto",
+            }}
+          >
+            <Box
+              component="img"
+              src="/favicon.svg"
+              alt="ChatTree Logo"
+              sx={{
+                width: 56,
+                height: 56,
+                filter: "drop-shadow(0 0 16px rgba(74, 158, 255, 0.25))",
+                animation: "pulseLogo 4s infinite ease-in-out",
+                "@keyframes pulseLogo": {
+                  "0%": { transform: "scale(1)" },
+                  "50%": { transform: "scale(1.04)" },
+                  "100%": { transform: "scale(1)" },
+                }
+              }}
+            />
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 800,
+                background: mode === "light"
+                  ? "linear-gradient(135deg, #1d6fe8 0%, #10b981 100%)"
+                  : "linear-gradient(135deg, #4a9eff 0%, #10b981 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              ChatTree
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                color: colors.text.primary,
+                fontWeight: 600,
+                textAlign: "center",
+                mt: 1,
+                fontSize: { xs: "1.2rem", md: "1.4rem" },
+              }}
+            >
+              {settings.language === "zh" ? "今天我能帮您些什么？" : "How can I help you today?"}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: colors.text.muted,
+                textAlign: "center",
+                maxWidth: 460,
+                lineHeight: 1.6,
+                fontSize: "0.85rem",
+              }}
+            >
+              {settings.language === "zh"
+                ? "在下方输入以开始对话。您的对话分支与合并路径将自动在左侧树状图画布中实时呈现。"
+                : "Type a message below to start. Your conversation paths and branch merges will be automatically visualized on the left sidebar canvas."}
+            </Typography>
+          </Box>
+
+          {/* Input panel wrapper */}
           <Box
             sx={{
               width: "100%",
-              maxWidth: 850,
-              pointerEvents: "auto",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              pt: hasMessages ? 6 : 0,
+              pb: hasMessages ? 4 : 0,
+              pl: { xs: 3, md: 8 },
+              pr: { xs: 3, md: "70px" },
+              background: hasMessages
+                ? (mode === "light"
+                  ? "linear-gradient(180deg, rgba(245, 244, 242, 0) 0%, rgba(245, 244, 242, 0.9) 40%, #f5f4f2 100%)"
+                  : "linear-gradient(180deg, rgba(26, 28, 29, 0) 0%, rgba(26, 28, 29, 0.9) 40%, #1a1c1d 100%)")
+                : "transparent",
+              transition: "background 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15), padding 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15)",
+              pointerEvents: "auto", // Allow interactions with input panel
             }}
           >
-            <InputPanel
-              inputMessage={inputMessage}
-              onInputChange={setInputMessage}
-              onSubmit={handleSubmit}
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              modelsList={modelsList}
-              modelsData={modelsData}
-              isRootSelected={selectedNode?.data?.isRoot && (!selectedNode?.data?.messages || selectedNode.data.messages.length === 0) && !selectedNode?.data?.userMessage}
-              isPendingMerge={!!pendingMerge}
-              pendingMerge={pendingMerge}
-              onUpdatePendingMerge={setPendingMerge}
-              onCancelPendingMerge={() => {
-                setPendingMerge(null);
-                setInputMessage("");
+            <Box
+              sx={{
+                width: "100%",
+                maxWidth: 850,
               }}
-              webSearchEnabled={webSearchEnabled}
-              onWebSearchToggle={() => setWebSearchEnabled((prev) => !prev)}
-              attachedFiles={attachedFiles}
-              onAddAttachedFile={onAddAttachedFile}
-              onRemoveAttachedFile={onRemoveAttachedFile}
-              setAttachedFiles={setAttachedFiles}
-            />
+            >
+              <InputPanel
+                inputMessage={inputMessage}
+                onInputChange={setInputMessage}
+                onSubmit={handleSubmit}
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+                modelsList={modelsList}
+                modelsData={modelsData}
+                isRootSelected={selectedNode?.data?.isRoot && (!selectedNode?.data?.messages || selectedNode.data.messages.length === 0) && !selectedNode?.data?.userMessage}
+                isPendingMerge={!!pendingMerge}
+                pendingMerge={pendingMerge}
+                onUpdatePendingMerge={setPendingMerge}
+                onCancelPendingMerge={() => {
+                  setPendingMerge(null);
+                  setInputMessage("");
+                }}
+                webSearchEnabled={webSearchEnabled}
+                onWebSearchToggle={() => setWebSearchEnabled((prev) => !prev)}
+                attachedFiles={attachedFiles}
+                onAddAttachedFile={onAddAttachedFile}
+                onRemoveAttachedFile={onRemoveAttachedFile}
+                setAttachedFiles={setAttachedFiles}
+                language={settings.language || "en"}
+              />
+            </Box>
           </Box>
+
+          {/* Bottom Spacer */}
+          <Box
+            sx={{
+              flex: hasMessages ? 0 : 1.2,
+              height: hasMessages ? "0px" : "15vh",
+              opacity: hasMessages ? 0 : 1,
+              overflow: "hidden",
+              transition: "flex 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15), height 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15), opacity 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.15)",
+            }}
+          />
         </Box>
       </Box>
 
@@ -902,6 +1070,7 @@ const TreeChatInner = () => {
       <WaitlistModal
         open={waitlistOpen}
         onClose={() => setWaitlistOpen(false)}
+        language={settings.language || "en"}
       />
 
       {/* Share Snackbar */}

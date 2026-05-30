@@ -260,7 +260,9 @@ const KatexMath = ({ latex, display }) => {
         display: display ? "block" : "inline",
         textAlign: display ? "center" : "inherit",
         my: display ? 1.5 : 0,
-        overflowX: "auto",
+        overflowX: display ? "auto" : "visible",
+        overflowY: display ? "hidden" : "visible",
+        py: display ? 0.5 : 0,
         "& .katex": { fontSize: display ? "1.1em" : "1em" },
         "& .katex-display": { my: 0 },
       }}
@@ -639,7 +641,7 @@ const MathAwareMarkdown = ({ content }) => {
 const getBoxSx = ({ colors: c, radius: r }) => ({
   color: c.text.primary,
   wordBreak: "break-word",
-  fontSize: "0.875rem",
+  fontSize: "1.0625rem",
   lineHeight: 1.6,
   "& p": {
     my: 1,

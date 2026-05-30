@@ -80,16 +80,18 @@ const ChatNode = ({ id, data, selected }) => {
     return str.length > len ? str.substring(0, len) + "..." : str;
   };
 
+  const isZh = data.language === "zh";
+
   // Tooltip content
   const tooltipTitle = (
     <Box sx={{ p: 0.5 }}>
       {isRoot ? (
         <Box>
           <Typography variant="caption" sx={{ fontWeight: 600, color: colors.accent.blue, display: "block", mb: 0.25 }}>
-            {data.title || "ChatTree Node"}
+            {data.title || (isZh ? "对话树节点" : "ChatTree Node")}
           </Typography>
           <Typography variant="caption" sx={{ fontStyle: "italic", color: colors.text.muted, fontSize: "0.72rem", display: "block" }}>
-            Start of conversation
+            {isZh ? "对话开始" : "Start of conversation"}
           </Typography>
         </Box>
       ) : data.messages && Array.isArray(data.messages) ? (
@@ -106,7 +108,7 @@ const ChatNode = ({ id, data, selected }) => {
                   fontSize: "0.7rem",
                 }}
               >
-                {isUser ? "User" : `Assistant (${msg.model || data.model})`}
+                {isUser ? (isZh ? "用户" : "User") : `${isZh ? "助手" : "Assistant"} (${msg.model || data.model})`}
               </Typography>
               <Typography
                 variant="caption"
@@ -118,7 +120,7 @@ const ChatNode = ({ id, data, selected }) => {
                   display: "block",
                 }}
               >
-                {getDisplayContent(msg.content) || (msg.role === "assistant" && data.status === "loading" ? "Generating..." : "")}
+                {getDisplayContent(msg.content) || (msg.role === "assistant" && data.status === "loading" ? (isZh ? "生成中..." : "Generating...") : "")}
               </Typography>
             </Box>
           );
@@ -127,7 +129,7 @@ const ChatNode = ({ id, data, selected }) => {
         <>
           <Box sx={{ mb: 1 }}>
             <Typography variant="caption" sx={{ color: colors.accent.userLabel, fontWeight: "bold", display: "block", fontSize: "0.7rem" }}>
-              User
+              {isZh ? "用户" : "User"}
             </Typography>
             <Typography variant="caption" sx={{ color: colors.text.primary, whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: "0.75rem", display: "block" }}>
               {data.userMessage}
@@ -136,7 +138,7 @@ const ChatNode = ({ id, data, selected }) => {
           {data.assistantMessage && (
             <Box>
               <Typography variant="caption" sx={{ color: colors.accent.green, fontWeight: "bold", display: "block", fontSize: "0.7rem" }}>
-                Assistant ({data.model})
+                {isZh ? "助手" : "Assistant"} ({data.model})
               </Typography>
               <Typography variant="caption" sx={{ color: colors.text.primary, whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: "0.75rem", display: "block" }}>
                 {data.assistantMessage}
@@ -250,7 +252,7 @@ const ChatNode = ({ id, data, selected }) => {
               boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
             }}
           >
-            <Tooltip title={isMergedNode ? "Edit merge prompt" : "Edit message"}>
+            <Tooltip title={isZh ? (isMergedNode ? "编辑合并提示词" : "编辑消息") : (isMergedNode ? "Edit merge prompt" : "Edit message")}>
               <IconButton
                 size="small"
                 onClick={handleStartEdit}
@@ -260,7 +262,7 @@ const ChatNode = ({ id, data, selected }) => {
               </IconButton>
             </Tooltip>
             {isMergedNode && !isLoading && (
-              <Tooltip title="Regenerate merge">
+              <Tooltip title={isZh ? "重新生成合并" : "Regenerate merge"}>
                 <IconButton
                   size="small"
                   onClick={handleRegenerateMerge}
@@ -280,8 +282,8 @@ const ChatNode = ({ id, data, selected }) => {
               <Tooltip
                 title={
                   isMergeSource && mergeSelectionCount >= 2
-                    ? "Double-click to merge"
-                    : "Add to merge selection"
+                    ? (isZh ? "双击以合并" : "Double-click to merge")
+                    : (isZh ? "加入合并选择" : "Add to merge selection")
                 }
               >
                 <IconButton
@@ -302,7 +304,7 @@ const ChatNode = ({ id, data, selected }) => {
                 </IconButton>
               </Tooltip>
             )}
-            <Tooltip title="Delete node">
+            <Tooltip title={isZh ? "删除节点" : "Delete node"}>
               <IconButton
                 size="small"
                 onClick={handleDelete}
@@ -328,7 +330,7 @@ const ChatNode = ({ id, data, selected }) => {
               textOverflow: "ellipsis",
             }}
           >
-            {data.title || getDisplayContent(data.messages && data.messages[0]?.content) || getDisplayContent(data.userMessage) || "Root Node"}
+            {data.title || getDisplayContent(data.messages && data.messages[0]?.content) || getDisplayContent(data.userMessage) || (isZh ? "根节点" : "Root Node")}
           </Typography>
         ) : (() => {
           const hasFiles = data.messages?.some(m => m.files && m.files.length > 0);
@@ -346,7 +348,7 @@ const ChatNode = ({ id, data, selected }) => {
                   textOverflow: "ellipsis",
                 }}
               >
-                {truncate(data.title || getDisplayContent(data.messages && data.messages[0]?.content) || getDisplayContent(data.userMessage) || "New Branch", 14)}
+                {truncate(data.title || getDisplayContent(data.messages && data.messages[0]?.content) || getDisplayContent(data.userMessage) || (isZh ? "新分支" : "New Branch"), 14)}
               </Typography>
 
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.25 }}>
@@ -354,7 +356,7 @@ const ChatNode = ({ id, data, selected }) => {
                   <Box display="flex" alignItems="center" gap={0.5}>
                     <CircularProgress size={10} sx={{ color: colors.accent.blue }} />
                     <Typography variant="caption" sx={{ color: colors.text.muted, fontSize: "0.62rem" }}>
-                      Generating...
+                      {isZh ? "生成中..." : "Generating..."}
                     </Typography>
                   </Box>
                 ) : (
@@ -370,12 +372,12 @@ const ChatNode = ({ id, data, selected }) => {
                       maxWidth: "70%",
                     }}
                   >
-                    {data.model || "Assistant"}
+                    {data.model || (isZh ? "助手" : "Assistant")}
                   </Typography>
                 )}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
                   {hasFiles && (
-                    <Tooltip title={`Attached: ${fileNames}`}>
+                    <Tooltip title={isZh ? `已附带文件: ${fileNames}` : `Attached: ${fileNames}`}>
                       <AttachFileIcon sx={{ fontSize: 10, color: colors.text.muted }} />
                     </Tooltip>
                   )}
@@ -448,7 +450,7 @@ const ChatNode = ({ id, data, selected }) => {
           }}
         >
           <DialogTitle sx={{ pb: 1, fontSize: "0.95rem", fontWeight: 600 }}>
-            {isMergedNode ? "Edit Merge Prompt" : "Edit Message"}
+            {isZh ? (isMergedNode ? "编辑合并提示词" : "编辑消息") : (isMergedNode ? "Edit Merge Prompt" : "Edit Message")}
           </DialogTitle>
           <DialogContent sx={{ py: 1 }}>
             <TextField
@@ -466,7 +468,7 @@ const ChatNode = ({ id, data, selected }) => {
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button size="small" onClick={handleCancelEdit} sx={{ color: colors.text.muted }}>
-              Cancel
+              {isZh ? "取消" : "Cancel"}
             </Button>
             <Button
               size="small"
@@ -478,7 +480,7 @@ const ChatNode = ({ id, data, selected }) => {
                 "&:hover": { backgroundColor: colors.accent.blueHover },
               }}
             >
-              Save
+              {isZh ? "保存" : "Save"}
             </Button>
           </DialogActions>
         </Dialog>

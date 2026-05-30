@@ -10,30 +10,50 @@ export const VISION_SUPPORT = {
   UNKNOWN: "unknown",
 };
 
-/**
- * Check if a model supports vision/image inputs based on model metadata
- * @param {string} modelId - The model ID to check
- * @param {Object} modelsData - Map of model ID to model metadata
- * @returns {string} - One of VISION_SUPPORT values
- */
 export const getVisionSupport = (modelId, modelsData) => {
-  if (!modelId || !modelsData) return VISION_SUPPORT.UNKNOWN;
+  if (!modelId) return VISION_SUPPORT.UNKNOWN;
 
-  const modelData = modelsData[modelId];
-  if (!modelData) return VISION_SUPPORT.UNKNOWN;
-
-  const inputModalities = modelData.architecture?.input_modalities;
-  if (!inputModalities || !Array.isArray(inputModalities)) {
-    return VISION_SUPPORT.UNKNOWN;
+  if (modelsData && modelsData[modelId]) {
+    const modelData = modelsData[modelId];
+    const inputModalities = modelData.architecture?.input_modalities;
+    if (inputModalities && Array.isArray(inputModalities)) {
+      if (inputModalities.includes("image")) {
+        return VISION_SUPPORT.SUPPORTED;
+      }
+      return VISION_SUPPORT.NOT_SUPPORTED;
+    }
   }
 
-  // Check if "image" is in input modalities
-  if (inputModalities.includes("image")) {
+  // Fallback for common vision models when metadata is missing or unknown
+  const id = modelId.toLowerCase();
+  const isKnownVision = (
+    id.includes("vision") ||
+    id.includes("gpt-4o") ||
+    id.includes("claude-3") ||
+    id.includes("gemini") ||
+    id.includes("pixtral") ||
+    id.includes("llama-3.2-11b") ||
+    id.includes("llama-3.2-90b") ||
+    id.includes("qwen-vl") ||
+    id.includes("qwen2.5-vl") ||
+    id.includes("qwen2-vl") ||
+    id.includes("openrouter/free") ||
+    id.includes("openrouter/auto") ||
+    id.includes("-vl") ||
+    id.includes("_vl") ||
+    id.includes("llava") ||
+    id.includes("internvl") ||
+    id.includes("minicpm-v") ||
+    id.includes("molmo") ||
+    id.includes("cogvlm") ||
+    id.includes("deepseek-vl")
+  );
+
+  if (isKnownVision) {
     return VISION_SUPPORT.SUPPORTED;
   }
 
-  // If we have modality info but no image, it's not supported
-  return VISION_SUPPORT.NOT_SUPPORTED;
+  return VISION_SUPPORT.UNKNOWN;
 };
 
 /**
@@ -44,26 +64,7 @@ export const getVisionSupport = (modelId, modelsData) => {
  */
 export const modelSupportsVision = (modelId, modelsData) => {
   const support = getVisionSupport(modelId, modelsData);
-  if (support === VISION_SUPPORT.SUPPORTED) return true;
-  if (support === VISION_SUPPORT.NOT_SUPPORTED) return false;
-
-  // Fallback for common vision models when metadata is missing or unknown
-  if (modelId) {
-    const id = modelId.toLowerCase();
-    return (
-      id.includes("vision") ||
-      id.includes("gpt-4o") ||
-      id.includes("claude-3") ||
-      id.includes("gemini") ||
-      id.includes("pixtral") ||
-      id.includes("llama-3.2-11b") ||
-      id.includes("llama-3.2-90b") ||
-      id.includes("qwen-vl") ||
-      id.includes("qwen2.5-vl")
-    );
-  }
-
-  return false;
+  return support === VISION_SUPPORT.SUPPORTED;
 };
 
 /**

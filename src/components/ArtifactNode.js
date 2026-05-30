@@ -70,11 +70,13 @@ const ArtifactNode = ({ id, data, selected }) => {
     return str.length > len ? str.substring(0, len) + "..." : str;
   };
 
+  const isZh = data.language === "zh";
+
   // Tooltip content
   const tooltipTitle = (
     <Box sx={{ p: 0.5 }}>
       <Typography variant="caption" sx={{ color: colors.accent.orange, fontWeight: "bold", display: "block", fontSize: "0.7rem" }}>
-        Artifact: {data.name || "Unnamed"} ({data.artifactType})
+        {isZh ? "制品: " : "Artifact: "}{data.name || (isZh ? "未命名" : "Unnamed")} ({isZh ? (data.artifactType === "image" ? "图片" : "文本") : data.artifactType})
       </Typography>
       {isImage ? (
         <Box
@@ -184,7 +186,7 @@ const ArtifactNode = ({ id, data, selected }) => {
             }}
           >
             {!isImage && (
-              <Tooltip title="Edit artifact">
+              <Tooltip title={isZh ? "编辑制品" : "Edit artifact"}>
                 <IconButton
                   size="small"
                   onClick={handleStartEdit}
@@ -197,8 +199,8 @@ const ArtifactNode = ({ id, data, selected }) => {
             <Tooltip
               title={
                 isMergeSource && mergeSelectionCount >= 2
-                  ? "Double-click to merge"
-                  : "Add to merge selection"
+                  ? (isZh ? "双击以合并" : "Double-click to merge")
+                  : (isZh ? "加入合并选择" : "Add to merge selection")
               }
             >
               <IconButton
@@ -218,7 +220,7 @@ const ArtifactNode = ({ id, data, selected }) => {
                 <MergeIcon sx={{ fontSize: 12 }} />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete artifact">
+            <Tooltip title={isZh ? "删除制品" : "Delete artifact"}>
               <IconButton
                 size="small"
                 onClick={handleDelete}
@@ -249,7 +251,7 @@ const ArtifactNode = ({ id, data, selected }) => {
                 textOverflow: "ellipsis",
               }}
             >
-              {truncate(data.name || "Artifact", 12)}
+              {truncate(data.name || (isZh ? "制品" : "Artifact"), 12)}
             </Typography>
             <Typography
               variant="caption"
@@ -258,7 +260,7 @@ const ArtifactNode = ({ id, data, selected }) => {
                 fontSize: "0.62rem",
               }}
             >
-              {isImage ? "Image Artifact" : "Text Artifact"}
+              {isImage ? (isZh ? "图片制品" : "Image Artifact") : (isZh ? "文本制品" : "Text Artifact")}
             </Typography>
           </Box>
         </Box>
@@ -291,11 +293,11 @@ const ArtifactNode = ({ id, data, selected }) => {
             }}
           >
             <DialogTitle sx={{ pb: 1, fontSize: "0.95rem", fontWeight: 600 }}>
-              Edit Artifact
+              {isZh ? "编辑制品" : "Edit Artifact"}
             </DialogTitle>
             <DialogContent sx={{ py: 1, display: "flex", flexDirection: "column", gap: 1.5 }}>
               <TextField
-                label="Artifact Name"
+                label={isZh ? "制品名称" : "Artifact Name"}
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 fullWidth
@@ -304,7 +306,7 @@ const ArtifactNode = ({ id, data, selected }) => {
                 sx={components.textFieldWithLabel}
               />
               <TextField
-                label="Content"
+                label={isZh ? "内容" : "Content"}
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 multiline
@@ -318,7 +320,7 @@ const ArtifactNode = ({ id, data, selected }) => {
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
               <Button size="small" onClick={handleCancelEdit} sx={{ color: colors.text.muted }}>
-                Cancel
+                {isZh ? "取消" : "Cancel"}
               </Button>
               <Button
                 size="small"
@@ -330,7 +332,7 @@ const ArtifactNode = ({ id, data, selected }) => {
                   "&:hover": { backgroundColor: colors.accent.orangeHover },
                 }}
               >
-                Save
+                {isZh ? "保存" : "Save"}
               </Button>
             </DialogActions>
           </Dialog>

@@ -45,20 +45,47 @@ const InputPanel = ({
   onAddAttachedFile,
   onRemoveAttachedFile,
   setAttachedFiles,
+  language = "en",
 }) => {
   const { components, colors, mode, radius } = useAppTheme();
   const fileInputRef = React.useRef(null);
+  const isZh = language === "zh";
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  // Translation dictionary
+  const t = {
+    cancelMerge: isZh ? "取消合并" : "Cancel merge",
+    mergeConfig: isZh ? "合并配置" : "Merge Configuration",
+    contextStrategy: isZh ? "上下文综合策略" : "Context Synthesis Strategy",
+    contextStrategyDesc: isZh 
+      ? "针对多分支长对话进行上下文压缩与精简，防范 Token 溢出与注意力分散" 
+      : "Compress & condense context for multi-branch long conversations to prevent token overflow & distraction",
+    raw: isZh ? "完整对话" : "Raw History",
+    rawTitle: isZh ? "直接完整拼接所有分支的对话历史" : "Directly concatenate full conversation history of all branches",
+    milestones: isZh ? "核心里程碑" : "Milestones",
+    milestonesTitle: isZh ? "仅保留首句提问与最终答案，隐藏中间多轮交谈步骤（推荐）" : "Keep only first prompt and final response, omitting intermediate steps (Recommended)",
+    summary: isZh ? "浓缩摘要" : "Summary",
+    summaryTitle: isZh ? "保留所有轮次，但自动截断各段回答长度" : "Keep all turns but automatically condense response lengths",
+    branchDepth: isZh ? "分支合并深度配置" : "Individual Branch Depth",
+    fullHistory: isZh ? "完整历史" : "Full History",
+    latestMessage: isZh ? "仅最新消息" : "Latest Only",
+    attachFiles: isZh ? "上传文件 (PDF, Word, Excel, 图片, 文本)" : "Attach files (PDF, Word, Excel, Images, Text)",
+    webSearchEnabled: isZh ? "已启用联网搜索" : "Web search enabled",
+    enableWebSearch: isZh ? "启用联网搜索" : "Enable web search",
+    parsing: isZh ? "解析中..." : "Parsing...",
+    error: isZh ? "错误" : "Error",
+  };
 
   // Get vision support info for tooltip
   const visionSupport = getVisionSupport(selectedModel, modelsData);
   const getVisionTooltip = () => {
     switch (visionSupport) {
       case VISION_SUPPORT.SUPPORTED:
-        return "✓ Supports images";
+        return isZh ? "✓ 支持图片" : "✓ Supports images";
       case VISION_SUPPORT.NOT_SUPPORTED:
-        return "✗ Does not support images";
+        return isZh ? "✗ 不支持图片" : "✗ Does not support images";
       case VISION_SUPPORT.UNKNOWN:
-        return "? Vision support unknown";
+        return isZh ? "? 视觉支持未知" : "? Vision support unknown";
       default:
         return "";
     }
@@ -139,12 +166,12 @@ const InputPanel = ({
 
   const getPlaceholder = () => {
     if (isPendingMerge) {
-      return "Enter your merge prompt...";
+      return isZh ? "输入合并后的指令..." : "Enter your merge prompt...";
     }
     if (isRootSelected) {
-      return "Start a new conversation...";
+      return isZh ? "开始新对话..." : "Start a new conversation...";
     }
-    return "Continue or branch from selected node...";
+    return isZh ? "在此输入以继续或分叉对话..." : "Continue or branch from selected node...";
   };
 
   const isParsingFiles = attachedFiles.some((f) => f.status === "parsing");
@@ -163,6 +190,21 @@ const InputPanel = ({
         maxWidth: 850,
         mx: "auto",
         mb: 0,
+        border: isFocused
+          ? isPendingMerge
+            ? `1px solid ${colors.accent.orange}`
+            : `1px solid ${colors.accent.blue}`
+          : isPendingMerge
+          ? `1px solid ${colors.accent.orange}`
+          : `1px solid ${colors.border.primary}`,
+        boxShadow: isFocused
+          ? isPendingMerge
+            ? `0 0 12px rgba(255, 152, 0, 0.2)`
+            : `0 0 12px rgba(74, 158, 255, 0.15)`
+          : isPendingMerge
+          ? `0 0 12px rgba(255, 152, 0, 0.15)`
+          : "none",
+        transition: "border-color 0.2s ease, box-shadow 0.2s ease",
       }}
     >
       {pendingMerge && (
@@ -184,10 +226,10 @@ const InputPanel = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <MergeIcon sx={{ color: colors.accent.orange, fontSize: 18 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: colors.text.primary, fontSize: "0.85rem" }}>
-                合并配置 (Merge Configuration)
+                {t.mergeConfig}
               </Typography>
             </Box>
-            <Tooltip title="Cancel merge">
+            <Tooltip title={t.cancelMerge}>
               <IconButton size="small" onClick={onCancelPendingMerge} sx={{ color: colors.text.muted, p: 0.5 }}>
                 <CloseIcon sx={{ fontSize: 14 }} />
               </IconButton>
@@ -200,10 +242,10 @@ const InputPanel = ({
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
             <Box sx={{ mr: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 600, display: "block", color: colors.accent.orange, fontSize: "0.75rem" }}>
-                上下文综合策略 (Context Synthesis Strategy)
+                {t.contextStrategy}
               </Typography>
               <Typography variant="caption" sx={{ color: colors.text.muted, fontSize: "0.68rem" }}>
-                针对多分支长对话进行上下文压缩与精简，防范 Token 溢出与注意力分散
+                {t.contextStrategyDesc}
               </Typography>
             </Box>
             <ToggleButtonGroup
@@ -239,9 +281,9 @@ const InputPanel = ({
                 }
               }}
             >
-              <ToggleButton value="raw" title="直接完整拼接所有分支的对话历史">完整对话 (Raw)</ToggleButton>
-              <ToggleButton value="milestones" title="仅保留首句提问与最终答案，隐藏中间多轮交谈步骤（推荐）">核心里程碑 (Milestones)</ToggleButton>
-              <ToggleButton value="summary" title="保留所有轮次，但自动截断各段回答长度">浓缩摘要 (Summary)</ToggleButton>
+              <ToggleButton value="raw" title={t.rawTitle}>{isZh ? "完整对话 (Raw)" : "Raw History"}</ToggleButton>
+              <ToggleButton value="milestones" title={t.milestonesTitle}>{isZh ? "核心里程碑 (Milestones)" : "Milestones"}</ToggleButton>
+              <ToggleButton value="summary" title={t.summaryTitle}>{isZh ? "浓缩摘要 (Summary)" : "Summary"}</ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
@@ -250,7 +292,7 @@ const InputPanel = ({
           {/* Individual Branch Selection */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, color: colors.text.muted, fontSize: "0.72rem" }}>
-              分支合并深度配置 (Individual Branch Depth)
+              {t.branchDepth}
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
               {pendingMerge.branches?.map((branch) => {
@@ -316,8 +358,8 @@ const InputPanel = ({
                         },
                       }}
                     >
-                      <ToggleButton value="full">∞ 完整历史 (Full)</ToggleButton>
-                      <ToggleButton value="single">1 仅最新消息 (Latest)</ToggleButton>
+                      <ToggleButton value="full">{isZh ? "∞ 完整历史" : "∞ Full"}</ToggleButton>
+                      <ToggleButton value="single">{isZh ? "1 仅最新消息" : "1 Latest"}</ToggleButton>
                     </ToggleButtonGroup>
                   </Box>
                 );
@@ -344,9 +386,9 @@ const InputPanel = ({
 
             let label = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
             if (isParsing) {
-              label = `${file.name} (Parsing...)`;
+              label = `${file.name} (${t.parsing})`;
             } else if (isError) {
-              label = `${file.name} (Error)`;
+              label = `${file.name} (${t.error})`;
             }
 
             return (
@@ -374,7 +416,7 @@ const InputPanel = ({
       )}
 
       <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1 }}>
-        <Tooltip title="Attach files (PDF, Word, Excel, Images, Text)">
+        <Tooltip title={t.attachFiles}>
           <IconButton
             onClick={triggerFileSelect}
             sx={components.iconButtonToggle.base}
@@ -403,23 +445,35 @@ const InputPanel = ({
           value={inputMessage}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           fullWidth
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          sx={components.textField}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              backgroundColor: "transparent",
+              color: colors.text.primary,
+              fontSize: "1rem",
+              p: 0,
+              py: 0.5,
+              "& fieldset": { border: "none" },
+              "&:hover fieldset": { border: "none" },
+              "&.Mui-focused fieldset": { border: "none" },
+            },
+            "& .MuiInputBase-input::placeholder": { color: colors.text.muted },
+          }}
         />
-        <Tooltip title={getVisionTooltip()} arrow placement="top">
-          <Box>
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              modelsList={modelsList}
-            />
-          </Box>
-        </Tooltip>
+        <ModelSelector
+          selectedModel={selectedModel}
+          onModelChange={onModelChange}
+          modelsList={modelsList}
+          language={language}
+          visionTooltip={getVisionTooltip()}
+        />
         <Tooltip
-          title={webSearchEnabled ? "Web search enabled" : "Enable web search"}
+          title={webSearchEnabled ? t.webSearchEnabled : t.enableWebSearch}
         >
           <IconButton
             onClick={onWebSearchToggle}

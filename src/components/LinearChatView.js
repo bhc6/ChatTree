@@ -23,14 +23,20 @@ import { renderMessageContent, getDisplayContent } from "../utils/treeUtils";
 
 const ThinkingProcess = ({ thinking, language, isStreaming }) => {
   const { colors } = useAppTheme();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const [hasManuallyToggled, setHasManuallyToggled] = useState(false);
 
-  // Auto-expand when streaming and there is content
+  // Auto-expand when streaming and there is content, unless user manually toggled it
   useEffect(() => {
-    if (isStreaming && thinking) {
+    if (isStreaming && thinking && !hasManuallyToggled) {
       setCollapsed(false);
     }
-  }, [isStreaming, thinking]);
+  }, [isStreaming, thinking, hasManuallyToggled]);
+
+  // Reset manual toggle when streaming state changes
+  useEffect(() => {
+    setHasManuallyToggled(false);
+  }, [isStreaming]);
 
   if (!thinking) return null;
 
@@ -51,6 +57,7 @@ const ThinkingProcess = ({ thinking, language, isStreaming }) => {
         onClick={(e) => {
           e.stopPropagation();
           setCollapsed(!collapsed);
+          setHasManuallyToggled(true);
         }}
         sx={{
           display: "flex",
@@ -464,10 +471,12 @@ const LinearChatView = ({
             }}
           >
             <Typography variant="h6" sx={{ mb: 1, fontWeight: 500 }}>
-              Start a Conversation
+              {language === "zh" ? "开始新对话" : "Start a Conversation"}
             </Typography>
             <Typography variant="body2" sx={{ maxWidth: 400 }}>
-              Type a message below to start. The conversation tree will be automatically visualized in the left sidebar.
+              {language === "zh"
+                ? "在下方输入以开始对话。您的对话分支与合并路径将自动在左侧树状图画布中实时呈现。"
+                : "Type a message below to start. The conversation tree will be automatically visualized in the left sidebar."}
             </Typography>
           </Box>
         ) : (
@@ -499,7 +508,7 @@ const LinearChatView = ({
                       alignItems: "center",
                       gap: 0.5,
                       mb: 0.5,
-                      ml: 1,
+                      ml: 0,
                       color: colors.accent.orange,
                     }}
                   >
@@ -527,30 +536,31 @@ const LinearChatView = ({
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 2,
+                      p: isUser ? 2 : "8px 0px 8px 0px",
                       borderRadius: isUser
-                        ? "14px 14px 4px 14px"
-                        : "14px 14px 14px 4px",
+                        ? radius.xl
+                        : "0px",
                       background: isUser
                         ? isSelected
                           ? mode === "light"
-                            ? "linear-gradient(135deg, #bfdbfe 0%, #dbeafe 100%)"
-                            : "linear-gradient(135deg, rgba(74, 158, 255, 0.3) 0%, rgba(30, 41, 59, 0.6) 100%)"
+                            ? "linear-gradient(135deg, #dbeafe 0%, #f0f9ff 100%)"
+                            : "linear-gradient(135deg, #323d4f 0%, #202834 100%)"
                           : mode === "light"
-                          ? "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)"
-                          : "linear-gradient(135deg, rgba(45, 61, 74, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%)"
-                        : isSelected
-                        ? mode === "light"
-                          ? "linear-gradient(135deg, #f5f4f2 0%, #eeece8 100%)"
-                          : "linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.09) 100%)"
-                        : mode === "light"
-                        ? "linear-gradient(135deg, #ffffff 0%, #f9f9f8 100%)"
-                        : "linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.04) 100%)",
-                      border: isSelected
-                        ? `1px solid ${colors.accent.blue}`
-                        : `1px solid ${isUser ? (mode === "light" ? "rgba(29, 111, 232, 0.15)" : "rgba(74, 158, 255, 0.1)") : (mode === "light" ? colors.border.secondary : "rgba(255, 255, 255, 0.05)")}`,
+                          ? "linear-gradient(135deg, #f0f4f8 0%, #f8fafc 100%)"
+                          : "linear-gradient(135deg, #282d37 0%, #1e222b 100%)"
+                        : "transparent",
+                      border: isUser
+                        ? isSelected
+                          ? mode === "light"
+                            ? "1px solid #93c5fd"
+                            : "1px solid rgba(74, 158, 255, 0.5)"
+                          : mode === "light"
+                          ? "1px solid #e2e8f0"
+                          : "1px solid #2e3138"
+                        : "none",
+                      borderLeft: isUser ? undefined : "none",
                       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: isSelected
+                      boxShadow: isSelected && isUser
                         ? `0 0 12px rgba(74, 158, 255, 0.15)`
                         : "none",
                       position: "relative",
@@ -643,6 +653,7 @@ const LinearChatView = ({
                             whiteSpace: "pre-wrap",
                             wordBreak: "break-word",
                             lineHeight: 1.6,
+                            fontSize: "1.0625rem",
                           }}
                         >
                           {getDisplayContent(msg.content)}
@@ -834,7 +845,7 @@ const LinearChatView = ({
               const cleanSnippet = displaySnippet.replace(/\n/g, " ").trim();
               const tooltipSnippet = cleanSnippet.length > 150 
                 ? cleanSnippet.substring(0, 150) + "..." 
-                : cleanSnippet || "Empty Prompt";
+                : cleanSnippet || (language === "zh" ? "空白提示词" : "Empty Prompt");
 
               const tooltipLabel = (
                 <Box sx={{ p: 0.75, maxWidth: 220 }}>

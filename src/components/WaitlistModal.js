@@ -14,8 +14,9 @@ import { getWaitlistEmail, saveWaitlistEmail } from "../utils/storage";
 
 const FORMSPREE_URL = "https://formspree.io/f/mqeklzzg";
 
-const WaitlistModal = ({ open, onClose }) => {
+const WaitlistModal = ({ open, onClose, language = "en" }) => {
   const { colors, components, typography, radius } = useAppTheme();
+  const isZh = language === "zh";
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,7 +54,7 @@ const WaitlistModal = ({ open, onClose }) => {
       saveWaitlistEmail(email);
       setSubmitted(true);
     } catch (err) {
-      setError("Failed to submit. Please try again.");
+      setError(isZh ? "提交失败，请稍后重试。" : "Failed to submit. Please try again.");
       console.error("Waitlist signup error:", err);
     } finally {
       setIsSubmitting(false);
@@ -96,14 +97,15 @@ const WaitlistModal = ({ open, onClose }) => {
               fontWeight: 600,
             }}
           >
-            Cloud Sync
+            {isZh ? "云端同步" : "Cloud Sync"}
           </Typography>
           <Typography
             variant="body2"
             sx={{ ...typography.muted, mb: 3, lineHeight: 1.6 }}
           >
-            Sync your conversations across devices, share branches with
-            collaborators, and never lose your chat history.
+            {isZh
+              ? "在设备间同步您的对话，与协作者共享分支，且永不丢失您的聊天历史记录。"
+              : "Sync your conversations across devices, share branches with collaborators, and never lose your chat history."}
           </Typography>
 
           {submitted ? (
@@ -116,19 +118,19 @@ const WaitlistModal = ({ open, onClose }) => {
               }}
             >
               <Typography variant="body2" sx={typography.accent}>
-                ✓ You&apos;re on the list!
+                {isZh ? "✓ 您已成功加入等待名单！" : "✓ You're on the list!"}
               </Typography>
               <Typography
                 variant="caption"
                 sx={{ ...typography.dim, display: "block", mt: 0.5 }}
               >
-                We&apos;ll notify you when cloud sync is ready.
+                {isZh ? "我们将在云端同步功能就绪时通知您。" : "We'll notify you when cloud sync is ready."}
               </Typography>
             </Box>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               <TextField
-                placeholder="Enter your email"
+                placeholder={isZh ? "输入您的邮箱地址" : "Enter your email"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
@@ -151,7 +153,7 @@ const WaitlistModal = ({ open, onClose }) => {
                 fullWidth
                 sx={components.buttonSecondary}
               >
-                {isSubmitting ? "Submitting..." : "Join Waitlist"}
+                {isSubmitting ? (isZh ? "提交中..." : "Submitting...") : (isZh ? "加入等待名单" : "Join Waitlist")}
               </Button>
             </Box>
           )}
@@ -160,7 +162,7 @@ const WaitlistModal = ({ open, onClose }) => {
             variant="caption"
             sx={{ ...typography.dim, display: "block", mt: 2 }}
           >
-            Coming Soon
+            {isZh ? "即将推出" : "Coming Soon"}
           </Typography>
         </Box>
       </Paper>

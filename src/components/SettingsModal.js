@@ -97,6 +97,7 @@ const SettingsModal = ({
   };
 
   const isLight = tempSettings.themeMode === "light";
+  const isZh = tempSettings.language === "zh";
 
   const segBtnSx = (active) => ({
     ...components.buttonSecondary,
@@ -118,18 +119,18 @@ const SettingsModal = ({
         }}
       >
         <Typography variant="h6" sx={{ color: colors.text.primary, mb: 2 }}>
-          Settings / 设置
+          {isZh ? "设置" : "Settings"}
         </Typography>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
-            label="API Key / API密钥"
+            label={isZh ? "API 密钥" : "API Key"}
             type="password"
             className="ph-no-capture"
             value={tempSettings.apiKey}
             onChange={(e) =>
               setTempSettings({ ...tempSettings, apiKey: e.target.value })
             }
-            placeholder="sk-... (required)"
+            placeholder={isZh ? "sk-... (必填)" : "sk-... (required)"}
             fullWidth
             size="small"
             autoComplete="off"
@@ -152,27 +153,26 @@ const SettingsModal = ({
             }
             label={
               <Typography variant="body2" sx={typography.secondary}>
-                🙈 Save API key in browser / 保存密钥在浏览器
+                {isZh ? "🙈 在浏览器中保存 API 密钥" : "🙈 Save API key in browser"}
               </Typography>
             }
           />
           <Typography variant="caption" sx={typography.dim}>
-            Your API key is stored locally in your browser and sent directly to
-            the provider. We never see or store your key on any server.
-            <br />
-            您的API密钥储存在本地浏览器中，直接发送给服务商。我们不会在服务器端保存或获取您的密钥。
+            {isZh
+              ? "您的 API 密钥储存在本地浏览器中，直接发送给服务商。我们不会在服务器端保存或获取您的密钥。"
+              : "Your API key is stored locally in your browser and sent directly to the provider. We never see or store your key on any server."}
           </Typography>
           <Box
             sx={{ display: "flex", gap: 1, alignItems: "flex-start", mt: 1 }}
           >
             <TextField
-              label="OpenAI Compatible URL / API地址"
+              label={isZh ? "OpenAI 兼容 API 地址" : "OpenAI Compatible URL"}
               className="ph-no-capture"
               value={tempSettings.apiUrl}
               onChange={(e) =>
                 setTempSettings({ ...tempSettings, apiUrl: e.target.value })
               }
-              placeholder="https://api.openai.com/v1 (leave empty for default)"
+              placeholder={isZh ? "https://api.openai.com/v1 (留空使用默认地址)" : "https://api.openai.com/v1 (leave empty for default)"}
               fullWidth
               size="small"
               autoComplete="off"
@@ -197,14 +197,14 @@ const SettingsModal = ({
                   "100%": { transform: "rotate(360deg)" },
                 },
               }}
-              title="Fetch models from API / 获取可用模型"
+              title={isZh ? "从 API 获取可用模型" : "Fetch models from API"}
             >
               <SyncIcon />
             </IconButton>
           </Box>
           {modelsList.length > 0 && modelsList !== defaultModels && (
             <Typography variant="caption" sx={typography.accent}>
-              ✓ Loaded {modelsList.length} models / 已加载 {modelsList.length} 个模型
+              {isZh ? `✓ 已成功加载 ${modelsList.length} 个模型` : `✓ Loaded ${modelsList.length} models`}
             </Typography>
           )}
 
@@ -212,7 +212,7 @@ const SettingsModal = ({
 
           {/* ── Theme ── */}
           <Typography variant="subtitle2" sx={{ color: colors.text.primary }}>
-            Appearance / 外观
+            {isZh ? "外观" : "Appearance"}
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button
@@ -221,7 +221,7 @@ const SettingsModal = ({
               onClick={() => setTempSettings({ ...tempSettings, themeMode: "dark" })}
               sx={segBtnSx(!isLight)}
             >
-              Dark / 深色
+              {isZh ? "深色" : "Dark"}
             </Button>
             <Button
               size="small"
@@ -229,7 +229,7 @@ const SettingsModal = ({
               onClick={() => setTempSettings({ ...tempSettings, themeMode: "light" })}
               sx={segBtnSx(isLight)}
             >
-              Light / 浅色
+              {isZh ? "浅色" : "Light"}
             </Button>
           </Box>
 
@@ -237,7 +237,7 @@ const SettingsModal = ({
 
           {/* ── Language ── */}
           <Typography variant="subtitle2" sx={{ color: colors.text.primary }}>
-            Language / 语言
+            {isZh ? "语言" : "Language"}
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button
@@ -260,7 +260,7 @@ const SettingsModal = ({
 
           {/* ── Canvas Controls ── */}
           <Typography variant="subtitle2" sx={{ color: colors.text.primary }}>
-            Canvas Controls / 画布控制
+            {isZh ? "画布控制" : "Canvas Controls"}
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <PanScrollToggle
@@ -274,8 +274,8 @@ const SettingsModal = ({
             />
             <Typography variant="body2" sx={typography.secondary}>
               {tempSettings.panOnScroll !== false
-                ? "Scroll set to pan / 滚轮拖拽画布"
-                : "Scroll set to zoom / 滚轮缩放画布"}
+                ? (isZh ? "滚轮设置为：平移画布" : "Scroll set to pan")
+                : (isZh ? "滚轮设置为：缩放画布" : "Scroll set to zoom")}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -290,8 +290,8 @@ const SettingsModal = ({
             />
             <Typography variant="body2" sx={typography.secondary}>
               {tempSettings.lockScrollOnNodeFocus
-                ? "Lock scroll on node hover / 鼠标悬浮节点锁定滚轮"
-                : "Scroll passes through nodes / 滚轮穿透节点"}
+                ? (isZh ? "悬停于节点时锁定滚动" : "Lock scroll on node hover")
+                : (isZh ? "滚动穿透节点" : "Scroll passes through nodes")}
             </Typography>
           </Box>
 
@@ -309,7 +309,7 @@ const SettingsModal = ({
               "&:hover": { color: colors.accent.blue },
             }}
           >
-            Privacy Policy / 隐私政策
+            {isZh ? "隐私政策" : "Privacy Policy"}
           </Typography>
           <Box
             sx={{
@@ -320,10 +320,10 @@ const SettingsModal = ({
             }}
           >
             <Button onClick={onClose} sx={components.buttonSecondary}>
-              Cancel / 取消
+              {isZh ? "取消" : "Cancel"}
             </Button>
             <Button onClick={handleSave} sx={components.buttonSecondary}>
-              Save / 保存
+              {isZh ? "保存" : "Save"}
             </Button>
           </Box>
         </Box>

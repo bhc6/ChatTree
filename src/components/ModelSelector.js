@@ -9,6 +9,7 @@ import {
   ClickAwayListener,
   Popper,
   Fade,
+  Tooltip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -16,8 +17,9 @@ import HistoryIcon from "@mui/icons-material/History";
 import { useAppTheme } from "../styles/ThemeContext";
 import { loadRecentModels, saveRecentModel } from "../utils/storage";
 
-const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
+const ModelSelector = ({ selectedModel, onModelChange, modelsList, language = "en", visionTooltip }) => {
   const { colors, radius } = useAppTheme();
+  const isZh = language === "zh";
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [recentModels, setRecentModels] = useState([]);
@@ -199,59 +201,61 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
     <ClickAwayListener onClickAway={handleClose}>
       <Box sx={{ position: "relative" }}>
         {/* Trigger Button */}
-        <Box
-          ref={anchorRef}
-          onClick={() => setOpen(!open)}
-          onKeyDown={handleKeyDown}
-          tabIndex={0}
-          role="combobox"
-          aria-expanded={open}
-          aria-haspopup="listbox"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1,
-            px: 1.5,
-            py: 1,
-            minWidth: 180,
-            maxWidth: 220,
-            backgroundColor: "transparent",
-            border: `1px solid ${colors.border.secondary}`,
-            borderRadius: radius.md,
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-            "&:hover": {
-              borderColor: colors.border.primary,
-            },
-            "&:focus": {
-              outline: "none",
-              borderColor: colors.accent.blue,
-            },
-          }}
-        >
-          <Typography
-            variant="body2"
+        <Tooltip title={visionTooltip} arrow placement="top" disableHoverListener={open}>
+          <Box
+            ref={anchorRef}
+            onClick={() => setOpen(!open)}
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+            role="combobox"
+            aria-expanded={open}
+            aria-haspopup="listbox"
             sx={{
-              color: colors.text.primary,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              fontSize: "0.875rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+              px: 1.5,
+              py: 1,
+              minWidth: 180,
+              maxWidth: 220,
+              backgroundColor: "transparent",
+              border: `1px solid ${colors.border.secondary}`,
+              borderRadius: radius.md,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+              "&:hover": {
+                borderColor: colors.border.primary,
+              },
+              "&:focus": {
+                outline: "none",
+                borderColor: colors.accent.blue,
+              },
             }}
           >
-            {selectedModel}
-          </Typography>
-          <KeyboardArrowDownIcon
-            sx={{
-              fontSize: 20,
-              color: colors.text.muted,
-              transform: open ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s ease",
-              flexShrink: 0,
-            }}
-          />
-        </Box>
+            <Typography
+              variant="body2"
+              sx={{
+                color: colors.text.primary,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontSize: "0.875rem",
+              }}
+            >
+              {selectedModel}
+            </Typography>
+            <KeyboardArrowDownIcon
+              sx={{
+                fontSize: 20,
+                color: colors.text.muted,
+                transform: open ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+                flexShrink: 0,
+              }}
+            />
+          </Box>
+        </Tooltip>
 
         {/* Dropdown */}
         <Popper
@@ -291,7 +295,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
                 >
                   <TextField
                     inputRef={searchInputRef}
-                    placeholder="Search models..."
+                    placeholder={isZh ? "搜索模型..." : "Search models..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -368,7 +372,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
                           letterSpacing: "0.05em",
                         }}
                       >
-                        Recent
+                        {isZh ? "最近使用" : "Recent"}
                       </Typography>
                       {recentFiltered.map((model, idx) =>
                         renderModelItem(model, getGlobalIndex(idx, true), true)
@@ -402,7 +406,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
                             letterSpacing: "0.05em",
                           }}
                         >
-                          All Models
+                          {isZh ? "所有模型" : "All Models"}
                         </Typography>
                       )}
                       {otherFiltered.map((model, idx) =>
@@ -422,7 +426,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList }) => {
                         variant="body2"
                         sx={{ color: colors.text.muted, fontSize: "0.875rem" }}
                       >
-                        No models found
+                        {isZh ? "未找到模型" : "No models found"}
                       </Typography>
                     </Box>
                   )}

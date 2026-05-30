@@ -17,7 +17,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AddIcon from "@mui/icons-material/Add";
 import SettingsIcon from "@mui/icons-material/Settings";
-import CloudIcon from "@mui/icons-material/Cloud";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import ShareIcon from "@mui/icons-material/Share";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import SearchIcon from "@mui/icons-material/Search";
@@ -226,7 +226,7 @@ const InfoPanel = ({
               p: 0.5,
               "&:hover": { color: colors.text.primary },
             }}
-            title="Collapse Sidebar"
+            title={language === "zh" ? "收起边栏" : "Collapse Sidebar"}
           >
             <MenuIcon sx={{ fontSize: 18 }} />
           </IconButton>
@@ -262,7 +262,7 @@ const InfoPanel = ({
               ...components.iconButtonMuted,
               p: 0.25,
             }}
-            title="View on GitHub"
+            title={language === "zh" ? "在 GitHub 查看" : "View on GitHub"}
           >
             <GitHubIcon sx={{ fontSize: 14 }} />
           </IconButton>
@@ -272,17 +272,17 @@ const InfoPanel = ({
             size="small"
             onClick={onShareChat}
             sx={components.iconButtonMuted}
-            title="Share Chat"
+            title={language === "zh" ? "分享对话" : "Share Chat"}
           >
             <ShareIcon fontSize="small" />
           </IconButton>
           <IconButton
             size="small"
-            onClick={onOpenWaitlist}
+            onClick={() => window.open("https://nova-orbit.xyz/", "_blank")}
             sx={components.iconButtonMuted}
-            title="Sync to Cloud (Coming Soon)"
+            title={language === "zh" ? "Nova Orbit (星轨软件)" : "Nova Orbit"}
           >
-            <CloudIcon fontSize="small" />
+            <RocketLaunchIcon fontSize="small" />
           </IconButton>
 
           <IconButton
@@ -310,7 +310,7 @@ const InfoPanel = ({
           slotProps={{
             input: {
               startAdornment: (
-                <SearchIcon sx={{ color: colors.text.muted, fontSize: 16, mr: 1 }} />
+                <SearchIcon sx={{ color: colors.text.muted, fontSize: 16, mr: 0.5 }} />
               ),
               endAdornment: searchQuery && (
                 <IconButton
@@ -324,12 +324,18 @@ const InfoPanel = ({
             },
           }}
           sx={{
-            ...components.textField,
             "& .MuiOutlinedInput-root": {
-              ...components.textField["& .MuiOutlinedInput-root"],
               borderRadius: radius.md,
-              py: 0.25,
+              backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.02)" : "rgba(255, 255, 255, 0.02)",
+              color: colors.text.primary,
+              fontSize: "0.82rem",
+              height: 30,
+              px: 1,
+              "& fieldset": { borderColor: colors.border.secondary },
+              "&:hover fieldset": { borderColor: colors.border.primary },
+              "&.Mui-focused fieldset": { borderColor: colors.accent.blue },
             },
+            "& .MuiInputBase-input::placeholder": { color: colors.text.muted },
           }}
         />
       </Box>
@@ -351,7 +357,7 @@ const InfoPanel = ({
           }}
         >
           <Typography variant="caption" sx={typography.muted}>
-            Chats
+            {language === "zh" ? "对话列表" : "Chats"}
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <IconButton
@@ -429,15 +435,15 @@ const InfoPanel = ({
                 fontWeight: 500,
               }}
             >
-              🔀 Merge Mode ({mergeSelectionCount} nodes selected)
+              {language === "zh" ? `🔀 合并模式 (已选择 ${mergeSelectionCount} 个节点)` : `🔀 Merge Mode (${mergeSelectionCount} nodes selected)`}
             </Typography>
             <Typography
               variant="caption"
               sx={{ ...typography.muted, display: "block", mt: 0.5 }}
             >
               {mergeSelectionCount < 2
-                ? "Click more nodes to add to selection"
-                : "Click Merge or double-click a node merge icon to confirm"}
+                ? (language === "zh" ? "点击更多节点以加入合并选择" : "Click more nodes to add to selection")
+                : (language === "zh" ? "点击“合并”或双击节点上的合并图标以确认" : "Click Merge or double-click a node merge icon to confirm")}
             </Typography>
             <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
               <Button
@@ -453,7 +459,7 @@ const InfoPanel = ({
                 }}
                 variant="outlined"
               >
-                Cancel
+                {language === "zh" ? "取消" : "Cancel"}
               </Button>
               <Button
                 size="small"
@@ -472,7 +478,7 @@ const InfoPanel = ({
                 }}
                 variant="contained"
               >
-                Merge
+                {language === "zh" ? "合并" : "Merge"}
               </Button>
             </Box>
           </>
@@ -481,7 +487,9 @@ const InfoPanel = ({
             variant="caption"
             sx={{ ...typography.muted, display: "block" }}
           >
-            (+) branch • Edit/Delete on hover • Merge icon to combine
+            {language === "zh"
+              ? "(+) 分支 • 悬浮以编辑/删除 • 合并图标以组合"
+              : "(+) branch • Edit/Delete on hover • Merge icon to combine"}
           </Typography>
         )}
         {conversationHistoryLength > 0 && (
@@ -489,7 +497,7 @@ const InfoPanel = ({
             variant="caption"
             sx={{ ...typography.dim, display: "block", mt: 0.5 }}
           >
-            Context: {conversationHistoryLength} messages
+            {language === "zh" ? `上下文: ${conversationHistoryLength} 条消息` : `Context: ${conversationHistoryLength} messages`}
           </Typography>
         )}
       </Box>

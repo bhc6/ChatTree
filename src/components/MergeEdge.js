@@ -35,6 +35,7 @@ const MergeEdge = ({
   const contextMode = data?.contextMode || CONTEXT_MODE.FULL;
   const isMergeEdge = data?.isMergeEdge;
   const onToggleContextMode = data?.onToggleContextMode;
+  const language = data?.language || "en";
 
   // Only show indicator on merge edges (orange edges going into merged nodes)
   if (!isMergeEdge) {
@@ -62,8 +63,8 @@ const MergeEdge = ({
         <Tooltip
           title={
             contextMode === CONTEXT_MODE.FULL
-              ? "Full branch context - Click to use single message only"
-              : "Single message only - Click to use full branch context"
+              ? (language === "zh" ? "完整分支上下文 - 点击切换为仅最新消息" : "Full branch context - Click to use single message only")
+              : (language === "zh" ? "仅最新消息 - 点击切换为完整分支上下文" : "Single message only - Click to use full branch context")
           }
           arrow
         >
