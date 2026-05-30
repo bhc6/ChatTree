@@ -716,7 +716,7 @@ const TreeChatInner = () => {
               borderRadius: `0 0 ${radius.md} ${radius.md}`,
               width: 48,
               height: 16,
-              boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+              boxShadow: "var(--shadow-sm)",
               color: colors.text.primary,
               p: 0,
               "&:hover": {
@@ -836,7 +836,7 @@ const TreeChatInner = () => {
               border: `1px solid ${colors.border.primary}`,
               borderRadius: radius.sm,
               backgroundColor: colors.bg.secondary,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              boxShadow: "var(--shadow-sm)",
               "&:hover": {
                 backgroundColor: colors.bg.hover,
               },

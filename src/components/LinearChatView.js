@@ -787,7 +787,7 @@ const LinearChatView = ({
             top: "50%",
             transform: "translateY(-50%)",
             zIndex: 10,
-            boxShadow: mode === "light" ? "0 4px 12px rgba(0,0,0,0.05)" : "0 4px 12px rgba(0,0,0,0.2)",
+            boxShadow: "var(--shadow-sm)",
           }}
         >
           {/* Vertical Track Line */}
@@ -867,21 +867,6 @@ const LinearChatView = ({
                   title={tooltipLabel}
                   placement="left"
                   arrow
-                  componentsProps={{
-                    tooltip: {
-                      sx: {
-                        backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.98)" : "rgba(15, 23, 42, 0.95)",
-                        border: `1px solid ${colors.border.primary}`,
-                        borderRadius: radius.sm,
-                        boxShadow: mode === "light" ? "0 4px 20px rgba(0,0,0,0.15)" : "0 4px 20px rgba(0,0,0,0.5)",
-                      }
-                    },
-                    arrow: {
-                      sx: {
-                        color: mode === "light" ? "rgba(255, 255, 255, 0.98)" : "rgba(15, 23, 42, 0.95)",
-                      }
-                    }
-                  }}
                 >
                   <Box
                     onClick={() => {

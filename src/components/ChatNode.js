@@ -161,7 +161,7 @@ const ChatNode = ({ id, data, selected }) => {
             backgroundColor: colors.bg.secondary,
             border: `1px solid ${colors.border.primary}`,
             color: colors.text.primary,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+            boxShadow: "var(--shadow-lg)",
             maxWidth: 240,
             maxHeight: 150,
             overflowY: "auto",
@@ -249,7 +249,7 @@ const ChatNode = ({ id, data, selected }) => {
               border: `1px solid ${colors.border.primary}`,
               borderRadius: radius.sm,
               p: 0.25,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              boxShadow: "var(--shadow-sm)",
             }}
           >
             <Tooltip title={isZh ? (isMergedNode ? "编辑合并提示词" : "编辑消息") : (isMergedNode ? "Edit merge prompt" : "Edit message")}>

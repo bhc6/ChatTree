@@ -23,6 +23,9 @@
   --accent-green: #81c784;
   --flow-bg: #1a1c1d;
   --flow-dot: #3a3d3e;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
@@ -44,6 +47,9 @@
   --accent-green: #2e7d32;
   --flow-bg: #f0ede8;
   --flow-dot: #d0ccc4;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
   color-scheme: light;
 }
 
@@ -110,3 +116,20 @@ a {
 [data-theme="light"] .katex {
   color: var(--text-primary);
 }
+
+/* ─── Global MUI Tooltip Styles ─────────────────────────────────── */
+.MuiTooltip-tooltip {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: 6px !important;
+  box-shadow: var(--shadow-md) !important;
+  font-family: inherit !important;
+  font-size: 0.75rem !important;
+  padding: 6px 10px !important;
+}
+
+.MuiTooltip-arrow {
+  color: var(--bg-secondary) !important;
+}
+

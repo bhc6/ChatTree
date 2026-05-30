@@ -280,7 +280,7 @@ const ModelSelector = ({ selectedModel, onModelChange, modelsList, language = "e
                   backgroundColor: colors.bg.secondary,
                   border: `1px solid ${colors.border.primary}`,
                   borderRadius: radius.md,
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+                  boxShadow: "var(--shadow-md)",
                   overflow: "hidden",
                   minWidth: anchorRef.current?.offsetWidth || 200,
                   maxWidth: 320,
