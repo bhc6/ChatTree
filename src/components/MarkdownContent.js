@@ -6,6 +6,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useAppTheme } from "../styles/ThemeContext";
 import { loadScript } from "../utils/fileParser";
 
+const MONOSPACE_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+
 // ─── KaTeX loader (singleton promise) ───────────────────────────────────────
 let katexLoadPromise = null;
 const ensureKatex = () => {
@@ -277,7 +279,7 @@ const KatexMath = ({ latex, display }) => {
     return (
       <Box
         component={display ? "div" : "span"}
-        sx={{ fontFamily: "monospace", opacity: 0.6, fontSize: "0.85em" }}
+        sx={{ fontFamily: MONOSPACE_FONT, opacity: 0.6, fontSize: "0.85em" }}
       >
         {display ? `\\[${latex}\\]` : `$${latex}$`}
       </Box>
@@ -288,7 +290,7 @@ const KatexMath = ({ latex, display }) => {
     return (
       <Box
         component={display ? "div" : "span"}
-        sx={{ color: colors.accent.orange, fontFamily: "monospace", fontSize: "0.82em" }}
+        sx={{ color: colors.accent.orange, fontFamily: MONOSPACE_FONT, fontSize: "0.82em" }}
         title={error}
       >
         {display ? `\\[${latex}\\]` : `$${latex}$`}
@@ -584,7 +586,7 @@ const CustomCodeBlock = ({ language, code }) => {
                     sx={{
                       m: 0,
                       p: 1.5,
-                      fontFamily: "monospace",
+                      fontFamily: MONOSPACE_FONT,
                       fontSize: "0.8rem",
                       backgroundColor: colors.bg.tertiary,
                       borderRadius: radius.sm,
@@ -651,8 +653,8 @@ const CustomCodeBlock = ({ language, code }) => {
             sx={{
               m: 0,
               p: 2,
-              fontFamily: "monospace",
-              fontSize: "0.82rem",
+              fontFamily: MONOSPACE_FONT,
+              fontSize: "0.85rem",
               overflowX: "auto",
               backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.03)" : "rgba(0, 0, 0, 0.15)",
               color: colors.text.primary,
@@ -771,7 +773,7 @@ const getBoxSx = ({ colors: c, radius: r }) => ({
     py: 0.25,
     borderRadius: r.xs,
     fontSize: "0.85em",
-    fontFamily: "monospace",
+    fontFamily: MONOSPACE_FONT,
   },
   "& blockquote": {
     borderLeft: `3px solid ${c.border.primary}`,

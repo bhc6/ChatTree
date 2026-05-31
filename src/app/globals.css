@@ -142,7 +142,7 @@ code[class*="language-"] {
   border: none !important;
   margin: 0 !important;
   padding: 0 !important;
-  font-family: monospace !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
 }
 
 pre[class*="language-"] {
