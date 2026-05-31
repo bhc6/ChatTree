@@ -346,6 +346,7 @@ const TreeChatInner = () => {
     handleRegenerateMerge,
     handleMergeNode,
     executePendingMerge,
+    stopGeneration,
   } = useNodeOperations({
     nodes,
     edges,
@@ -367,6 +368,10 @@ const TreeChatInner = () => {
     settings,
     activeChatId,
   });
+
+  const isGenerating = useMemo(() => {
+    return nodes.some((n) => n.data?.status === "loading");
+  }, [nodes]);
 
   // Auto layout handler to tidy nodes dynamically
   const handleAutoLayout = useCallback(() => {
@@ -1035,6 +1040,8 @@ const TreeChatInner = () => {
                 onRemoveAttachedFile={onRemoveAttachedFile}
                 setAttachedFiles={setAttachedFiles}
                 language={settings.language || "en"}
+                isGenerating={isGenerating}
+                onStopGeneration={stopGeneration}
               />
             </Box>
           </Box>

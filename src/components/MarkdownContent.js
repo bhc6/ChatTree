@@ -30,6 +30,47 @@ const ensureKatex = () => {
   return katexLoadPromise;
 };
 
+// ─── Prism loader (singleton promise) ───────────────────────────────────────
+let prismLoadPromise = null;
+const ensurePrism = (mode) => {
+  if (typeof window === "undefined") return Promise.resolve(false);
+
+  const themeUrl = mode === "light"
+    ? "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"
+    : "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css";
+
+  let link = document.querySelector('link[id="prism-theme-link"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.id = "prism-theme-link";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+  }
+  if (link.getAttribute("href") !== themeUrl) {
+    link.href = themeUrl;
+  }
+
+  if (window.Prism) {
+    return Promise.resolve(true);
+  }
+  if (prismLoadPromise) return prismLoadPromise;
+
+  prismLoadPromise = (async () => {
+    try {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js");
+      if (window.Prism && window.Prism.plugins && window.Prism.plugins.autoloader) {
+        window.Prism.plugins.autoloader.languages_path = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/';
+      }
+      return !!window.Prism;
+    } catch (e) {
+      console.error("Failed to load Prism.js:", e);
+      return false;
+    }
+  })();
+  return prismLoadPromise;
+};
+
 // Whitelist of standard HTML tags that are safe for markdown-to-jsx to parse.
 // Custom tags like <assistant>, <thought>, <system>, <user> are not in this list and will be escaped.
 const ALLOWED_HTML_TAGS = new Set([
@@ -104,6 +145,9 @@ const splitMathAndText = (raw) => {
     placeholders.push({ placeholder, original: match });
     return placeholder;
   });
+
+  // Replace ▋ with HTML span outside code blocks
+  tempRaw = tempRaw.replace(/▋/g, '<span className="streaming-cursor">▋</span>');
 
   const segments = [];
   let lastIndex = 0;
@@ -340,6 +384,18 @@ const CustomCodeBlock = ({ language, code }) => {
   const isHtml = language === "html";
   const hasPreview = isMermaid || isSvg || isHtml;
 
+  const codeRef = useRef(null);
+  const [highlighted, setHighlighted] = useState(false);
+
+  // Clean code and check cursor
+  const cleanCode = useMemo(() => {
+    return code.endsWith("▋") ? code.slice(0, -1) : code;
+  }, [code]);
+
+  const showCursor = useMemo(() => {
+    return code.endsWith("▋");
+  }, [code]);
+
   // Auto-switch to preview/diagram tab by default for Mermaid and SVG
   useEffect(() => {
     if (hasPreview) {
@@ -389,8 +445,31 @@ const CustomCodeBlock = ({ language, code }) => {
     };
   }, [code, isMermaid]);
 
+  // Prism highlighting effect
+  useEffect(() => {
+    setHighlighted(false);
+  }, [cleanCode, language]);
+
+  useEffect(() => {
+    if (!codeRef.current || isMermaid || isSvg || isHtml) return;
+    let isMounted = true;
+
+    ensurePrism(mode).then((ok) => {
+      if (ok && isMounted && codeRef.current) {
+        const langClass = language ? `language-${language}` : "language-none";
+        codeRef.current.className = langClass;
+        window.Prism.highlightElement(codeRef.current);
+        setHighlighted(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [cleanCode, language, mode, isMermaid, isSvg, isHtml]);
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(cleanCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -568,22 +647,31 @@ const CustomCodeBlock = ({ language, code }) => {
         ) : (
           <Box
             component="pre"
+            className={language ? `language-${language}` : "language-none"}
             sx={{
               m: 0,
               p: 2,
               fontFamily: "monospace",
               fontSize: "0.82rem",
               overflowX: "auto",
-              backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.04)" : "rgba(0, 0, 0, 0.15)",
+              backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.03)" : "rgba(0, 0, 0, 0.15)",
               color: colors.text.primary,
               lineHeight: 1.5,
+              border: "none !important",
+              boxShadow: "none !important",
+              margin: "0 !important",
               "& code": {
-                backgroundColor: "transparent",
-                p: 0,
+                backgroundColor: "transparent !important",
+                p: "0 !important",
+                color: "inherit",
+                textShadow: "none !important",
               },
             }}
           >
-            <code>{code}</code>
+            <code ref={codeRef} className={language ? `language-${language}` : "language-none"} style={{ display: "inline" }}>
+              {cleanCode}
+            </code>
+            {showCursor && <span className="streaming-cursor">▋</span>}
           </Box>
         )}
       </Box>
@@ -617,8 +705,12 @@ const MarkdownChunk = ({ text }) => (
 
 // Splits raw content at math delimiters, renders math and text separately.
 // This prevents markdown-to-jsx from touching LaTeX syntax.
-const MathAwareMarkdown = ({ content }) => {
-  const segments = useMemo(() => splitMathAndText(content || ""), [content]);
+const MathAwareMarkdown = ({ content, isStreaming }) => {
+  let displayContent = content || "";
+  if (isStreaming) {
+    displayContent += "▋";
+  }
+  const segments = useMemo(() => splitMathAndText(displayContent), [displayContent]);
 
   // If no math found, render the whole thing as markdown (no overhead)
   if (segments.length === 1 && segments[0].type === "text") {
@@ -700,16 +792,28 @@ const getBoxSx = ({ colors: c, radius: r }) => ({
     display: "block",
     my: 1.5,
   },
+  "& .streaming-cursor": {
+    display: "inline-block",
+    animation: "blink-cursor 0.8s infinite",
+    color: c.accent.blue,
+    marginLeft: "2px",
+    verticalAlign: "middle",
+    fontWeight: "bold",
+  },
+  "@keyframes blink-cursor": {
+    "0%, 100%": { opacity: 1 },
+    "50%": { opacity: 0 },
+  },
 });
 
-const MarkdownContent = ({ children, className, sx = {} }) => {
+const MarkdownContent = ({ children, className, sx = {}, isStreaming = false }) => {
   const theme = useAppTheme();
   return (
     <Box
       className={className}
       sx={{ ...getBoxSx(theme), ...sx }}
     >
-      <MathAwareMarkdown content={typeof children === "string" ? children : ""} />
+      <MathAwareMarkdown content={typeof children === "string" ? children : ""} isStreaming={isStreaming} />
     </Box>
   );
 };

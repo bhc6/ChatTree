@@ -6,7 +6,6 @@ import {
   IconButton,
   Tooltip,
   Paper,
-  CircularProgress,
   TextField,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -184,6 +183,46 @@ const FilePreviews = ({ files }) => {
           </Box>
         );
       })}
+    </Box>
+  );
+};
+
+const TypingIndicator = () => {
+  const { colors } = useAppTheme();
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.6,
+        py: 1,
+        px: 0.5,
+        height: 20,
+      }}
+    >
+      {[0, 1, 2].map((i) => (
+        <Box
+          key={i}
+          sx={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            backgroundColor: colors.accent.blue,
+            animation: "typing-bounce 1.4s infinite ease-in-out both",
+            animationDelay: `${i * 0.16}s`,
+            "@keyframes typing-bounce": {
+              "0%, 80%, 100%": {
+                transform: "scale(0.6)",
+                opacity: 0.4,
+              },
+              "40%": {
+                transform: "scale(1)",
+                opacity: 1,
+              },
+            },
+          }}
+        />
+      ))}
     </Box>
   );
 };
@@ -655,15 +694,7 @@ const LinearChatView = ({
                           language={language}
                           isStreaming={true}
                         />
-                        <Box display="flex" alignItems="center" gap={1.5} py={0.5}>
-                          <CircularProgress size={16} sx={{ color: colors.accent.blue }} />
-                          <Typography
-                            variant="body2"
-                            sx={{ color: colors.text.muted, fontStyle: "italic" }}
-                          >
-                            {language === "zh" ? "正在生成回复..." : "Generating response..."}
-                          </Typography>
-                        </Box>
+                        {!msg.thinking && <TypingIndicator />}
                       </Box>
                     ) : msg.error ? (
                       <Typography
@@ -679,20 +710,9 @@ const LinearChatView = ({
                           language={language}
                           isStreaming={msg.status === "loading"}
                         />
-                        <MarkdownContent>{getDisplayContent(msg.content)}</MarkdownContent>
-                        {msg.status === "loading" && (
-                          <Box
-                             display="flex"
-                             alignItems="center; gap: 1"
-                             mt={1}
-                             sx={{ opacity: 0.7 }}
-                          >
-                            <CircularProgress size={12} sx={{ color: colors.accent.blue }} />
-                            <Typography variant="caption" sx={{ color: colors.text.muted }}>
-                              {language === "zh" ? "输出中..." : "Streaming..."}
-                            </Typography>
-                          </Box>
-                        )}
+                        <MarkdownContent isStreaming={msg.status === "loading"}>
+                          {getDisplayContent(msg.content)}
+                        </MarkdownContent>
                       </Box>
                     )}
                   </Paper>

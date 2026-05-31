@@ -19,6 +19,7 @@ import MergeIcon from "@mui/icons-material/CallMerge";
 import LanguageIcon from "@mui/icons-material/Language";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import ImageIcon from "@mui/icons-material/Image";
+import StopIcon from "@mui/icons-material/Stop";
 import { useAppTheme } from "../styles/ThemeContext";
 import ModelSelector from "./ModelSelector";
 import { getVisionSupport, VISION_SUPPORT } from "../utils/visionModels";
@@ -46,6 +47,8 @@ const InputPanel = ({
   onRemoveAttachedFile,
   setAttachedFiles,
   language = "en",
+  isGenerating = false,
+  onStopGeneration,
 }) => {
   const { components, colors, mode, radius } = useAppTheme();
   const fileInputRef = React.useRef(null);
@@ -435,47 +438,160 @@ const InputPanel = ({
         </Box>
       )}
 
-      {/* File attachment preview chips */}
+      {/* File attachment preview tiles (Claude-style) */}
       {attachedFiles.length > 0 && (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+            gap: 1.25,
+            mb: 1.5,
+            width: "100%",
+          }}
+        >
           {attachedFiles.map((file, idx) => {
             const isImage = file.type?.startsWith("image/");
             const isParsing = file.status === "parsing";
             const isError = file.status === "error";
 
-            let icon = isImage ? <ImageIcon sx={{ fontSize: 14 }} /> : <AttachFileIcon sx={{ fontSize: 14 }} />;
-            if (isParsing) {
-              icon = <CircularProgress size={12} sx={{ color: colors.accent.blue }} />;
-            } else if (isError) {
-              icon = <CloseIcon sx={{ fontSize: 12, color: colors.accent.error }} />;
-            }
+            const cardBg = isError
+              ? "rgba(244, 67, 54, 0.04)"
+              : mode === "light"
+              ? "rgba(0, 0, 0, 0.015)"
+              : "rgba(255, 255, 255, 0.02)";
+            const cardBorder = isError
+              ? `1px solid ${colors.accent.error}`
+              : isParsing
+              ? `1px solid ${colors.accent.blue}`
+              : `1px solid ${colors.border.secondary}`;
 
-            let label = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-            if (isParsing) {
-              label = `${file.name} (${t.parsing})`;
-            } else if (isError) {
-              label = `${file.name} (${t.error})`;
-            }
+            const getFileExt = (name) => {
+              const dotIdx = name.lastIndexOf(".");
+              return dotIdx !== -1 ? name.substring(dotIdx + 1).toUpperCase() : "";
+            };
+            const ext = getFileExt(file.name);
 
             return (
-              <Chip
+              <Box
                 key={file.id || idx}
-                icon={icon}
-                label={label}
-                size="small"
-                onDelete={() => onRemoveAttachedFile?.(idx)}
-                deleteIcon={<CloseIcon sx={{ fontSize: 12 }} />}
                 sx={{
-                  backgroundColor: isError ? "rgba(244, 67, 54, 0.1)" : colors.bg.tertiary,
-                  color: isError ? colors.accent.error : colors.text.primary,
-                  border: `1px solid ${isError ? colors.accent.error : colors.border.secondary}`,
-                  "& .MuiChip-icon": { color: isError ? colors.accent.error : colors.accent.blue },
-                  "& .MuiChip-deleteIcon": {
-                    color: colors.text.muted,
-                    "&:hover": { color: colors.text.primary },
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.25,
+                  p: 1,
+                  borderRadius: radius.md,
+                  backgroundColor: cardBg,
+                  border: cardBorder,
+                  transition: "all 0.2s ease",
+                  minWidth: 0,
+                  "&:hover": {
+                    borderColor: isError ? colors.accent.error : colors.accent.blue,
+                    backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.03)" : "rgba(255, 255, 255, 0.04)",
+                    "& .delete-btn": {
+                      opacity: 1,
+                    },
                   },
                 }}
-              />
+              >
+                {/* Left Thumbnail or Icon Box */}
+                <Box
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: radius.sm,
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.03)" : "rgba(255, 255, 255, 0.04)",
+                    flexShrink: 0,
+                    position: "relative",
+                    border: `1px solid ${colors.border.secondary}`,
+                  }}
+                >
+                  {isParsing ? (
+                    <CircularProgress size={14} thickness={5} sx={{ color: colors.accent.blue }} />
+                  ) : isImage && file.dataUrl ? (
+                    <img
+                      src={file.dataUrl}
+                      alt={file.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "0.62rem",
+                        color: isError ? colors.accent.error : colors.accent.blue,
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      {ext || "FILE"}
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* File Details (Middle) */}
+                <Box sx={{ minWidth: 0, flexGrow: 1, pr: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 600,
+                      color: colors.text.primary,
+                      display: "block",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontSize: "0.75rem",
+                      lineHeight: 1.2,
+                    }}
+                    title={file.name}
+                  >
+                    {file.name}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isError ? colors.accent.error : colors.text.muted,
+                      fontSize: "0.65rem",
+                      display: "block",
+                      mt: 0.25,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {isParsing
+                      ? t.parsing
+                      : isError
+                      ? t.error
+                      : `${ext || file.type?.split("/")[1]?.toUpperCase() || "FILE"} • ${(file.size / 1024).toFixed(1)} KB`}
+                  </Typography>
+                </Box>
+
+                {/* Close Button (Top Right) */}
+                <IconButton
+                  className="delete-btn"
+                  size="small"
+                  onClick={() => onRemoveAttachedFile?.(idx)}
+                  sx={{
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    backgroundColor: colors.bg.primary,
+                    border: `1px solid ${colors.border.primary}`,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    p: 0.25,
+                    opacity: 0,
+                    transition: "opacity 0.15s ease, background-color 0.15s ease",
+                    "&:hover": {
+                      backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.1)",
+                    },
+                  }}
+                >
+                  <CloseIcon sx={{ fontSize: 9, color: colors.text.primary }} />
+                </IconButton>
+              </Box>
             );
           })}
         </Box>
@@ -553,13 +669,29 @@ const InputPanel = ({
             <LanguageIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <IconButton
-          type="submit"
-          disabled={isParsingFiles || (!inputMessage.trim() && attachedFiles.length === 0)}
-          sx={components.buttonPrimary}
-        >
-          <KeyboardReturnIcon fontSize="small" />
-        </IconButton>
+        {isGenerating ? (
+          <IconButton
+            type="button"
+            onClick={onStopGeneration}
+            sx={{
+              ...components.buttonPrimary,
+              color: colors.accent.orange,
+              "&:hover": {
+                backgroundColor: mode === "light" ? "rgba(224, 123, 0, 0.08)" : "rgba(255, 152, 0, 0.1)",
+              },
+            }}
+          >
+            <StopIcon fontSize="small" />
+          </IconButton>
+        ) : (
+          <IconButton
+            type="submit"
+            disabled={isParsingFiles || (!inputMessage.trim() && attachedFiles.length === 0)}
+            sx={components.buttonPrimary}
+          >
+            <KeyboardReturnIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
     </Paper>
   );

@@ -199,6 +199,14 @@ export const useNodeOperations = ({
   activeChatId,
 }) => {
   const { fitView } = useReactFlow();
+  const abortControllerRef = useRef(null);
+
+  const stopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
 
   // Track the current activeChatId to prevent stale closures and cross-talk during background stream updates
   const activeChatIdRef = useRef(activeChatId);
@@ -480,6 +488,10 @@ export const useNodeOperations = ({
         const conversationMessages = buildConversationFromPath(path);
         const requestMessages = [...conversationMessages, { role: "user", content: finalUserMessage }];
 
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
         await sendChatRequest(
           requestMessages,
           selectedModel,
@@ -491,6 +503,9 @@ export const useNodeOperations = ({
             });
           },
           (fullResponse, fullReasoning) => {
+            if (abortControllerRef.current?.signal === signal) {
+              abortControllerRef.current = null;
+            }
             const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
             const finalMessages = [newUserMessageObj, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }];
             updateThisNode(newNodeId, {
@@ -501,12 +516,22 @@ export const useNodeOperations = ({
             generateNodeTitle(newNodeId, finalMessages, targetChatId);
           },
           (error) => {
+            if (abortControllerRef.current?.signal === signal) {
+              abortControllerRef.current = null;
+            }
             console.error(error);
-            updateThisNode(newNodeId, {
-              error: error.message,
-              status: "error",
-            });
-          }
+            if (error.name === "AbortError") {
+              updateThisNode(newNodeId, {
+                status: "complete",
+              });
+            } else {
+              updateThisNode(newNodeId, {
+                error: error.message,
+                status: "error",
+              });
+            }
+          },
+          signal
         );
 
         setTimeout(() => fitView({ nodes: [{ id: parentNodeId }, { id: newNodeId }], padding: 0.2, duration: 300, maxZoom: 1 }), 100);
@@ -545,6 +570,10 @@ export const useNodeOperations = ({
         const cleanUpdatedMessages = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
         const requestMessages = [...parentContext, ...cleanUpdatedMessages];
 
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
         await sendChatRequest(
           requestMessages,
           selectedModel,
@@ -556,6 +585,9 @@ export const useNodeOperations = ({
             });
           },
           (fullResponse, fullReasoning) => {
+            if (abortControllerRef.current?.signal === signal) {
+              abortControllerRef.current = null;
+            }
             const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
             const finalMessages = [...updatedMessages, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }];
             updateThisNode(parentNodeId, {
@@ -569,12 +601,22 @@ export const useNodeOperations = ({
             }
           },
           (error) => {
+            if (abortControllerRef.current?.signal === signal) {
+              abortControllerRef.current = null;
+            }
             console.error(error);
-            updateThisNode(parentNodeId, {
-              error: error.message,
-              status: "error",
-            });
-          }
+            if (error.name === "AbortError") {
+              updateThisNode(parentNodeId, {
+                status: "complete",
+              });
+            } else {
+              updateThisNode(parentNodeId, {
+                error: error.message,
+                status: "error",
+              });
+            }
+          },
+          signal
         );
       }
     },
@@ -671,6 +713,14 @@ export const useNodeOperations = ({
   const regenerateNodeAsync = useCallback(
     (nodeId) => {
       return new Promise(async (resolve) => {
+        if (abortControllerRef.current?.signal.aborted) {
+          resolve();
+          return;
+        }
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        const signal = abortControllerRef.current.signal;
         const currentNodes = nodesRef.current;
         const currentEdges = edgesRef.current;
 
@@ -817,6 +867,10 @@ export const useNodeOperations = ({
             ];
 
             await new Promise((res, rej) => {
+              if (signal.aborted) {
+                rej(new DOMException("Aborted", "AbortError"));
+                return;
+              }
               sendChatRequest(
                 requestMessages,
                 selectedModel,
@@ -847,7 +901,8 @@ export const useNodeOperations = ({
                 },
                 (error) => {
                   rej(error);
-                }
+                },
+                signal
               );
             });
           }
@@ -858,6 +913,9 @@ export const useNodeOperations = ({
 
         try {
           await regenerateTurn(0);
+          if (abortControllerRef.current?.signal === signal) {
+            abortControllerRef.current = null;
+          }
           updateThisNode(nodeId, {
             messages: currentMessages,
             status: "complete",
@@ -869,11 +927,22 @@ export const useNodeOperations = ({
           }
           resolve();
         } catch (error) {
+          if (abortControllerRef.current?.signal === signal) {
+            abortControllerRef.current = null;
+          }
           console.error(error);
-          updateThisNode(nodeId, {
-            error: error.message,
-            status: "error",
-          });
+          if (error.name === "AbortError") {
+            updateThisNode(nodeId, {
+              messages: currentMessages,
+              status: "complete",
+              model: selectedModel,
+            });
+          } else {
+            updateThisNode(nodeId, {
+              error: error.message,
+              status: "error",
+            });
+          }
           resolve();
         }
       });
@@ -898,6 +967,9 @@ export const useNodeOperations = ({
         let currentLevel = [startNodeId];
 
         while (currentLevel.length > 0) {
+          if (abortControllerRef.current?.signal.aborted) {
+            break;
+          }
           const nextLevel = [];
 
           // Collect all children of current level nodes
@@ -929,6 +1001,9 @@ export const useNodeOperations = ({
 
           // Regenerate all nodes in this level sequentially
           for (const childId of nextLevel) {
+            if (abortControllerRef.current?.signal.aborted) {
+              break;
+            }
             processedNodes.add(childId);
             affectedNodes.add(childId);
             await regenerateNodeAsync(childId);
@@ -1585,6 +1660,10 @@ export const useNodeOperations = ({
         userMessageObj,
       ];
 
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
+
       await sendChatRequest(
         conversationMessages,
         selectedModel,
@@ -1599,6 +1678,9 @@ export const useNodeOperations = ({
           });
         },
         (fullResponse, fullReasoning) => {
+          if (abortControllerRef.current?.signal === signal) {
+            abortControllerRef.current = null;
+          }
           const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
           const finalMessages = [
             userMessageObj,
@@ -1612,12 +1694,22 @@ export const useNodeOperations = ({
           generateNodeTitle(newNodeId, finalMessages, targetChatId);
         },
         (error) => {
+          if (abortControllerRef.current?.signal === signal) {
+            abortControllerRef.current = null;
+          }
           console.error(error);
-          updateThisNode(newNodeId, {
-            error: error.message,
-            status: "error",
-          });
-        }
+          if (error.name === "AbortError") {
+            updateThisNode(newNodeId, {
+              status: "complete",
+            });
+          } else {
+            updateThisNode(newNodeId, {
+              error: error.message,
+              status: "error",
+            });
+          }
+        },
+        signal
       );
 
       setTimeout(() => {
@@ -1654,5 +1746,6 @@ export const useNodeOperations = ({
     handleRegenerateMerge,
     handleMergeNode,
     executePendingMerge,
+    stopGeneration,
   };
 };

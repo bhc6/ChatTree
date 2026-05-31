@@ -88,7 +88,7 @@ export const useChatApi = (settings, options = {}) => {
   const { webSearchEnabled = false, modelsData = {} } = options;
 
   const sendChatRequest = useCallback(
-    async (messages, model, onChunk, onComplete, onError) => {
+    async (messages, model, onChunk, onComplete, onError, signal) => {
       const apiKey = settings.apiKey;
       const apiUrl = settings.apiUrl || DEFAULT_API_URL;
 
@@ -203,6 +203,7 @@ export const useChatApi = (settings, options = {}) => {
             "X-Title": "ChatTree",
           },
           body: JSON.stringify(requestBody),
+          signal,
         });
 
         if (!response.ok) {
