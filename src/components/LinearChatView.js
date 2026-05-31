@@ -17,6 +17,8 @@ import CallMergeIcon from "@mui/icons-material/CallMerge";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import MarkdownContent from "./MarkdownContent";
 import { useAppTheme } from "../styles/ThemeContext";
 import { renderMessageContent, getDisplayContent } from "../utils/treeUtils";
@@ -257,6 +259,7 @@ const LinearChatView = ({
   const [copiedId, setCopiedId] = useState(null);
   const [activeMessageId, setActiveMessageId] = useState(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isTimelineHovered, setIsTimelineHovered] = useState(false);
   
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -875,105 +878,196 @@ const LinearChatView = ({
     {/* Vertical Timeline Navigation Bar (Grok-inspired Milestones Outline) */}
       {userMessages.length > 0 && (
         <Box
+          onMouseEnter={() => setIsTimelineHovered(true)}
+          onMouseLeave={() => setIsTimelineHovered(false)}
           sx={{
             display: { xs: "none", md: "flex" },
             flexDirection: "column",
-            alignItems: "center",
-            width: 32,
-            backgroundColor: mode === "light" ? "rgba(245, 244, 242, 0.45)" : "rgba(26, 28, 29, 0.45)",
-            backdropFilter: "blur(8px)",
-            py: 2,
+            alignItems: "stretch",
+            width: isTimelineHovered ? 220 : 32,
+            backgroundColor: mode === "light"
+              ? isTimelineHovered ? "rgba(255, 255, 255, 0.85)" : "rgba(245, 244, 242, 0.45)"
+              : isTimelineHovered ? "rgba(18, 18, 18, 0.85)" : "rgba(26, 28, 29, 0.45)",
+            backdropFilter: "blur(20px)",
+            py: 1,
             px: 0.5,
             borderRadius: radius.xl,
-            border: `1px solid ${colors.border.subtle}`,
+            border: `1px solid ${isTimelineHovered ? colors.border.primary : colors.border.subtle}`,
             height: "auto",
-            maxHeight: "70%",
+            maxHeight: "75%",
             position: "absolute",
             right: 16,
             top: "50%",
             transform: "translateY(-50%)",
             zIndex: 10,
-            boxShadow: "var(--shadow-sm)",
+            boxShadow: isTimelineHovered ? "var(--shadow-lg)" : "var(--shadow-sm)",
+            transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+            overflow: "hidden",
           }}
         >
-          {/* Vertical Track Line */}
-          <Box
-            sx={{
-              position: "absolute",
-              top: 16,
-              bottom: 16,
-              width: 2,
-              background: `linear-gradient(to bottom, ${colors.accent.blue} 0%, ${colors.accent.orange || "#ff9800"} 100%)`,
-              opacity: 0.3,
-              zIndex: 1,
+          {/* Scroll Up Arrow */}
+          <IconButton
+            onClick={() => {
+              if (chatContainerRef.current) {
+                startProgrammaticScroll(() => {
+                  chatContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+                });
+              }
             }}
-          />
-
-          {/* Milestone Ticks List */}
-          <Box
+            size="small"
             sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 2,
-              py: 2,
-              zIndex: 2,
-              position: "relative",
-              overflowY: "auto",
-              maxHeight: "100%",
-              scrollbarWidth: "none",
-              "&::-webkit-scrollbar": { display: "none" },
+              alignSelf: "flex-end",
+              mr: "6px",
+              width: 20,
+              height: 20,
+              opacity: isTimelineHovered ? 0.7 : 0,
+              pointerEvents: isTimelineHovered ? "auto" : "none",
+              transition: "all 0.2s ease",
+              color: colors.text.muted,
+              "&:hover": {
+                color: colors.accent.blue,
+                opacity: 1,
+                backgroundColor: mode === "light" ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
+              },
+              mb: 0.5,
             }}
           >
-            {userMessages.map((userMsg, idx) => {
-              const isActive = activeMessageId === userMsg.id;
-              const node = userMsg.node;
-              
-              // Detect branching / sibling count
-              const childEdges = edges.filter(e => e.source === node.id);
-              const hasMultipleBranches = childEdges.length > 1;
-              const isMerged = node.data?.isMergedNode;
-              
-              // Get snippet content
-              const displaySnippet = getDisplayContent(userMsg.content);
-              const cleanSnippet = displaySnippet.replace(/\n/g, " ").trim();
-              const tooltipSnippet = cleanSnippet.length > 150 
-                ? cleanSnippet.substring(0, 150) + "..." 
-                : cleanSnippet || (language === "zh" ? "空白提示词" : "Empty Prompt");
+            <KeyboardArrowUpIcon sx={{ fontSize: 16 }} />
+          </IconButton>
 
-              const tooltipLabel = (
-                <Box sx={{ p: 0.75, maxWidth: 220 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 600, display: "block", color: colors.accent.blue }}>
-                    {language === "zh" ? `第 ${idx + 1} 轮对话` : `Turn ${idx + 1}`}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: "0.78rem", my: 0.5, color: mode === "light" ? colors.text.primary : "#fff", lineHeight: 1.4 }}>
-                    "{tooltipSnippet}"
-                  </Typography>
-                  {isMerged && (
-                    <Typography variant="caption" sx={{ color: colors.accent.orange || "#ff9800", fontWeight: 500, display: "block" }}>
-                      🔀 {language === "zh" ? "合并分支节点" : "Merged Branch Node"}
-                    </Typography>
-                  )}
-                  {hasMultipleBranches && (
-                    <Typography variant="caption" sx={{ color: colors.accent.blue, fontWeight: 500, display: "block" }}>
-                      🌿 {language === "zh" ? `产生分叉 (${childEdges.length} 分支)` : `Branch Fork (${childEdges.length} branches)`}
-                    </Typography>
-                  )}
-                  {userMsg.model && (
-                    <Typography variant="caption" sx={{ color: colors.text.muted, fontSize: "0.68rem", display: "block", mt: 0.5 }}>
-                      Model: {userMsg.model}
-                    </Typography>
-                  )}
-                </Box>
-              );
+          {/* Scrollable Timeline Area */}
+          <Box
+            sx={{
+              position: "relative",
+              width: "100%",
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
+              scrollbarWidth: "none",
+              "&::-webkit-scrollbar": { display: "none" },
+              py: 1.5,
+            }}
+          >
+            {/* Absolute Track Wrapper */}
+            <Box
+              sx={{
+                position: "absolute",
+                right: 15,
+                top: 24, // first dot center
+                bottom: 24, // last dot center
+                width: 2,
+                zIndex: 1,
+                pointerEvents: "none",
+              }}
+            >
+              {/* Background Track Line */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  transform: "translateX(-50%)",
+                  backgroundColor: mode === "light" ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+                }}
+              />
 
-              return (
-                <Tooltip
-                  key={userMsg.id}
-                  title={tooltipLabel}
-                  placement="left"
-                  arrow
-                >
+              {/* Active Progress Fill Line & Sliding Indicator */}
+              {(() => {
+                const activeIndex = Math.max(0, userMessages.findIndex(m => m.id === activeMessageId));
+                const pct = userMessages.length > 1 ? (activeIndex / (userMessages.length - 1)) * 100 : 0;
+                return (
+                  <>
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        left: "50%",
+                        top: 0,
+                        width: 2,
+                        height: `${pct}%`,
+                        transform: "translateX(-50%)",
+                        background: `linear-gradient(to bottom, ${colors.accent.blue} 0%, ${colors.accent.orange || "#ff9800"} 100%)`,
+                        transition: "height 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+                      }}
+                    />
+                    {/* Sliding Elevator Active Marker Dot */}
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        left: "50%",
+                        top: `${pct}%`,
+                        transform: "translate(-50%, -50%)",
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        backgroundColor: colors.accent.blue,
+                        boxShadow: mode === "light"
+                          ? `0 0 8px 2px rgba(74, 158, 255, 0.4)`
+                          : `0 0 10px 3px rgba(74, 158, 255, 0.5)`,
+                        transition: "top 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+                        zIndex: 2,
+                      }}
+                    />
+                  </>
+                );
+              })()}
+            </Box>
+
+            {/* Milestone Rows List */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: "16px",
+                position: "relative",
+                zIndex: 2,
+              }}
+            >
+              {userMessages.map((userMsg, idx) => {
+                const isActive = activeMessageId === userMsg.id;
+                const node = userMsg.node;
+                
+                // Detect branching / sibling count
+                const childEdges = edges.filter(e => e.source === node.id);
+                const hasMultipleBranches = childEdges.length > 1;
+                const isMerged = node.data?.isMergedNode;
+                
+                // Get snippet content
+                const displaySnippet = getDisplayContent(userMsg.content);
+                const cleanSnippet = displaySnippet.replace(/\n/g, " ").trim();
+                const tooltipSnippet = cleanSnippet.length > 150 
+                  ? cleanSnippet.substring(0, 150) + "..." 
+                  : cleanSnippet || (language === "zh" ? "空白提示词" : "Empty Prompt");
+
+                const tooltipLabel = (
+                  <Box sx={{ p: 0.75, maxWidth: 220 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, display: "block", color: colors.accent.blue }}>
+                      {language === "zh" ? `第 ${idx + 1} 轮对话` : `Turn ${idx + 1}`}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: "0.78rem", my: 0.5, color: mode === "light" ? colors.text.primary : "#fff", lineHeight: 1.4 }}>
+                      "{tooltipSnippet}"
+                    </Typography>
+                    {isMerged && (
+                      <Typography variant="caption" sx={{ color: colors.accent.orange || "#ff9800", fontWeight: 500, display: "block" }}>
+                        🔀 {language === "zh" ? "合并分支节点" : "Merged Branch Node"}
+                      </Typography>
+                    )}
+                    {hasMultipleBranches && (
+                      <Typography variant="caption" sx={{ color: colors.accent.blue, fontWeight: 500, display: "block" }}>
+                        🌿 {language === "zh" ? `产生分叉 (${childEdges.length} 分支)` : `Branch Fork (${childEdges.length} branches)`}
+                      </Typography>
+                    )}
+                    {userMsg.model && (
+                      <Typography variant="caption" sx={{ color: colors.text.muted, fontSize: "0.68rem", display: "block", mt: 0.5 }}>
+                        Model: {userMsg.model}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+
+                const itemContent = (
                   <Box
                     onClick={() => {
                       const element = document.getElementById(`msg-${userMsg.id}`);
@@ -990,69 +1084,137 @@ const LinearChatView = ({
                     sx={{
                       cursor: "pointer",
                       display: "flex",
+                      flexDirection: "row",
                       alignItems: "center",
-                      justifyContent: "center",
-                      width: 20,
-                      height: 20,
-                      borderRadius: "50%",
-                      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                      backgroundColor: "transparent",
+                      justifyContent: "flex-end",
+                      height: 24,
                       position: "relative",
-                      "&:hover": {
-                        transform: "scale(1.25)",
-                      },
+                      width: "100%",
+                      userSelect: "none",
                     }}
                   >
-                    {/* Visual Dot */}
+                    {/* Text Snippet Outline (Fades in when timeline is expanded) */}
                     <Box
                       sx={{
-                        width: isActive ? 10 : 6,
-                        height: isActive ? 10 : 6,
-                        borderRadius: "50%",
-                        backgroundColor: isActive
-                          ? colors.accent.blue
-                          : isMerged
-                          ? colors.accent.orange || "#ff9800"
-                          : hasMultipleBranches
-                          ? "rgba(74, 158, 255, 0.7)"
-                          : mode === "light"
-                          ? "rgba(0, 0, 0, 0.25)"
-                          : "rgba(255, 255, 255, 0.25)",
-                        border: isActive
-                          ? mode === "light"
-                            ? `2px solid ${colors.bg.primary}`
-                            : `2px solid #ffffff`
-                          : isMerged
-                          ? `1px solid ${colors.accent.orange || "#ff9800"}`
-                          : `1px solid transparent`,
-                        boxShadow: isActive
-                          ? `0 0 10px 3px rgba(74, 158, 255, 0.5)`
-                          : isMerged
-                          ? `0 0 8px 1px rgba(255, 152, 0, 0.4)`
-                          : "none",
-                        transition: "all 0.25s ease",
+                        opacity: isTimelineHovered ? 1 : 0,
+                        transform: isTimelineHovered ? "translateX(0)" : "translateX(-8px)",
+                        transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+                        pointerEvents: isTimelineHovered ? "auto" : "none",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        fontSize: "0.72rem",
+                        fontWeight: isActive ? 600 : 400,
+                        color: isActive 
+                          ? colors.accent.blue 
+                          : mode === "light" 
+                          ? "rgba(0, 0, 0, 0.65)" 
+                          : "rgba(255, 255, 255, 0.65)",
+                        mr: "12px",
+                        maxWidth: 160,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
                       }}
-                    />
+                    >
+                      {isMerged && (
+                        <Box component="span" sx={{ color: colors.accent.orange || "#ff9800", fontSize: "0.8rem", display: "inline-flex" }}>
+                          🔀
+                        </Box>
+                      )}
+                      {hasMultipleBranches && (
+                        <Box component="span" sx={{ color: colors.accent.blue, fontSize: "0.8rem", display: "inline-flex" }}>
+                          🌿
+                        </Box>
+                      )}
+                      <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {cleanSnippet}
+                      </Box>
+                    </Box>
 
-                    {/* Small Icon indicator if special */}
-                    {(isMerged || hasMultipleBranches) && !isActive && (
+                    {/* Milestone Tick Dot Container */}
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        mr: "5px", // Spaced so dot center lines up exactly with right:15px
+                        transition: "transform 0.2s ease",
+                        "&:hover": {
+                          transform: "scale(1.2)",
+                        },
+                      }}
+                    >
                       <Box
                         sx={{
-                          position: "absolute",
-                          top: -2,
-                          right: -2,
-                          width: 5,
-                          height: 5,
+                          width: 6,
+                          height: 6,
                           borderRadius: "50%",
-                          backgroundColor: isMerged ? (colors.accent.orange || "#ff9800") : colors.accent.blue,
+                          backgroundColor: isMerged
+                            ? colors.accent.orange || "#ff9800"
+                            : hasMultipleBranches
+                            ? "rgba(74, 158, 255, 0.8)"
+                            : mode === "light"
+                            ? "rgba(0, 0, 0, 0.2)"
+                            : "rgba(255, 255, 255, 0.2)",
+                          transition: "all 0.2s ease",
                         }}
                       />
-                    )}
+                    </Box>
                   </Box>
-                </Tooltip>
-              );
-            })}
+                );
+
+                return isTimelineHovered ? (
+                  <Box key={userMsg.id}>{itemContent}</Box>
+                ) : (
+                  <Tooltip
+                    key={userMsg.id}
+                    title={tooltipLabel}
+                    placement="left"
+                    arrow
+                  >
+                    <Box>{itemContent}</Box>
+                  </Tooltip>
+                );
+              })}
+            </Box>
           </Box>
+
+          {/* Scroll Down Arrow */}
+          <IconButton
+            onClick={() => {
+              if (chatContainerRef.current) {
+                startProgrammaticScroll(() => {
+                  chatContainerRef.current.scrollTo({
+                    top: chatContainerRef.current.scrollHeight,
+                    behavior: "smooth",
+                  });
+                });
+              }
+            }}
+            size="small"
+            sx={{
+              alignSelf: "flex-end",
+              mr: "6px",
+              width: 20,
+              height: 20,
+              opacity: isTimelineHovered ? 0.7 : 0,
+              pointerEvents: isTimelineHovered ? "auto" : "none",
+              transition: "all 0.2s ease",
+              color: colors.text.muted,
+              "&:hover": {
+                color: colors.accent.blue,
+                opacity: 1,
+                backgroundColor: mode === "light" ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
+              },
+              mt: 0.5,
+            }}
+          >
+            <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
+          </IconButton>
         </Box>
       )}
     </Box>
