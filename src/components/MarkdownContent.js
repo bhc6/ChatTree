@@ -374,6 +374,13 @@ const CitationAnchor = ({ href, children, ...props }) => {
   );
 };
 
+const cleanLanguageName = (lang) => {
+  if (!lang) return "";
+  let token = lang.trim().split(/[\s,]+/)[0];
+  token = token.replace(/^(lang|language)-/i, "");
+  return token.toUpperCase();
+};
+
 const CustomCodeBlock = ({ language, code }) => {
   const { colors, components, mode, radius } = useAppTheme();
   const [copied, setCopied] = useState(false);
@@ -510,7 +517,7 @@ const CustomCodeBlock = ({ language, code }) => {
               letterSpacing: "0.05em",
             }}
           >
-            {language || "code"}
+            {cleanLanguageName(language) || "CODE"}
           </Typography>
           
           {hasPreview && (

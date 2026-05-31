@@ -141,11 +141,14 @@ code[class*="language-"] {
   box-shadow: none !important;
   border: none !important;
   margin: 0 !important;
-  padding: 0 !important;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
 }
 
+code[class*="language-"] {
+  padding: 0 !important;
+}
+
 pre[class*="language-"] {
-  background: transparent !important;
+  padding: 14px 16px !important;
 }
 

@@ -138,6 +138,12 @@ const parseThinkingAndContent = (text, reasoningContent) => {
   let content = text || "";
   let thinking = reasoningContent || "";
 
+  // Strip trailing partial HTML tags to prevent tag leak and flickering during streaming
+  const partialTagMatch = content.match(/<[a-zA-Z0-9/:-]*$/);
+  if (partialTagMatch) {
+    content = content.slice(0, partialTagMatch.index);
+  }
+
   if (content.includes("<think>")) {
     const parts = content.split("<think>");
     const beforeThink = parts[0];
