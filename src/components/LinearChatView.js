@@ -952,7 +952,7 @@ const LinearChatView = ({
             <Box
               sx={{
                 position: "absolute",
-                right: 15,
+                right: 11,
                 top: 24, // first dot center
                 bottom: 24, // last dot center
                 width: 2,
@@ -1137,7 +1137,7 @@ const LinearChatView = ({
                     <Box
                       sx={{
                         position: "absolute",
-                        right: 6, // Pinned so dot center is at exactly right: 16px (matches track at right: 15px with width: 2)
+                        right: 2, // Pinned so dot center is at exactly right: 12px (matches track at right: 11px with width: 2, centered relative to outer capsule)
                         width: 20,
                         height: 20,
                         borderRadius: "50%",
