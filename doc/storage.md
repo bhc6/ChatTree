@@ -115,8 +115,16 @@ https://chattree.xyz/#shared=<base64url>
 
 ---
 
-## 数据隐私
+## 数据安全与隐私 / Data Security & Privacy
 
-- **API Key**：单独存储在 `chattree-api-key` 键，与对话数据分离
-- **对话内容**：全部只存在本地浏览器，不上传任何服务器
-- **分享链接**：接收方可完整解码对话内容，请谨慎分享敏感对话
+ChatTree 拥有强大的本地化隐私沙箱模型，确保敏感凭证（API Keys）的安全：
+
+1. **凭证隔离与擦除**：
+   - **API Key**：独立于任何对话数据，存储在专属的 `chattree-api-key` 键中。
+   - **非持久化模式**：若未勾选设置面板的“保存 API Key”，Key 将在页面销毁或重载时自动从 `localStorage` 中移除。
+
+2. **渲染沙箱与跨域隔离 (Anti-XSS)**：
+   - **HTML 代码预览**：为防范 LLM 吐出包含恶意 JavaScript 的 HTML 内容（如在加载时向外部偷偷回传 localStorage 中的 API Keys），系统在 HTML Preview Tab 中渲染代码时，使用的是一个具有 `sandbox="allow-scripts"` 的 `<iframe srcDoc={code} />`。由于未授予 `allow-same-origin` 权限，该 iframe 被视为一个完全独立的唯一源（Unique Origin），哪怕执行 JS 也无法读取父级文档的 localStorage。
+   - **SVG 代码渲染**：如果将未转义的 SVG 通过 `dangerouslySetInnerHTML` 渲染进主页面 DOM，其中包含的脚本（如 `<svg onload="...">`）会在主页面域（Same-Origin）中无限制运行。为了防止这一重大漏洞，ChatTree 在渲染 SVG 代码时将其编码为 Data URL 并通过 `<img>` 标签展示。根据规范，`<img>` 标签引用的 SVG 资源内部的一切脚本和网络加载都将被浏览器强制禁用，安全地实现了隔离预览。
+   - **Mermaid 图表渲染**：Mermaid 解析器的安全策略被固定为 `"strict"`，以防在图表的节点文本中被注入 HTML 伪协议或 JS 操作节点，最大限度保证在呈现复杂拓扑树时的代码安全。
+   - **Markdown 标签白名单**：在 Markdown 解析阶段，移除了 `script`, `iframe`, `embed`, `object`, `form` 等具有代码执行或页面欺骗特性的 HTML 标签。未包含在安全白名单中的标签都将自动被转义为纯文本，防止行内 HTML 注入。

@@ -205,12 +205,19 @@ export const useNodeOperations = ({
   activeChatId,
 }) => {
   const { fitView } = useReactFlow();
-  const abortControllerRef = useRef(null);
+  const abortControllersRef = useRef({});
 
-  const stopGeneration = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
+  const stopGeneration = useCallback((nodeId) => {
+    if (nodeId) {
+      if (abortControllersRef.current[nodeId]) {
+        abortControllersRef.current[nodeId].abort();
+        delete abortControllersRef.current[nodeId];
+      }
+    } else {
+      Object.keys(abortControllersRef.current).forEach((id) => {
+        abortControllersRef.current[id].abort();
+      });
+      abortControllersRef.current = {};
     }
   }, []);
 
@@ -233,8 +240,8 @@ export const useNodeOperations = ({
     edgesRef.current = edges;
   }, [edges]);
 
-  // Track if cascade is active to prevent duplicate triggers
-  const cascadeActiveRef = useRef(false);
+  // Track active cascade nodes
+  const activeCascadesRef = useRef(new Set());
 
   // Background update buffering for localStorage
   const pendingSaveTimeouts = useRef({});
@@ -494,9 +501,12 @@ export const useNodeOperations = ({
         const conversationMessages = buildConversationFromPath(path);
         const requestMessages = [...conversationMessages, { role: "user", content: finalUserMessage }];
 
-        if (abortControllerRef.current) abortControllerRef.current.abort();
-        abortControllerRef.current = new AbortController();
-        const signal = abortControllerRef.current.signal;
+        if (abortControllersRef.current[newNodeId]) {
+          abortControllersRef.current[newNodeId].abort();
+        }
+        const controller = new AbortController();
+        abortControllersRef.current[newNodeId] = controller;
+        const signal = controller.signal;
 
         await sendChatRequest(
           requestMessages,
@@ -509,8 +519,8 @@ export const useNodeOperations = ({
             });
           },
           (fullResponse, fullReasoning) => {
-            if (abortControllerRef.current?.signal === signal) {
-              abortControllerRef.current = null;
+            if (abortControllersRef.current[newNodeId] === controller) {
+              delete abortControllersRef.current[newNodeId];
             }
             const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
             const finalMessages = [newUserMessageObj, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }];
@@ -522,10 +532,12 @@ export const useNodeOperations = ({
             generateNodeTitle(newNodeId, finalMessages, targetChatId);
           },
           (error) => {
-            if (abortControllerRef.current?.signal === signal) {
-              abortControllerRef.current = null;
+            if (abortControllersRef.current[newNodeId] === controller) {
+              delete abortControllersRef.current[newNodeId];
             }
-            console.error(error);
+            if (error.name !== "AbortError") {
+              console.error(error);
+            }
             if (error.name === "AbortError") {
               updateThisNode(newNodeId, {
                 status: "complete",
@@ -576,9 +588,12 @@ export const useNodeOperations = ({
         const cleanUpdatedMessages = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
         const requestMessages = [...parentContext, ...cleanUpdatedMessages];
 
-        if (abortControllerRef.current) abortControllerRef.current.abort();
-        abortControllerRef.current = new AbortController();
-        const signal = abortControllerRef.current.signal;
+        if (abortControllersRef.current[parentNodeId]) {
+          abortControllersRef.current[parentNodeId].abort();
+        }
+        const controller = new AbortController();
+        abortControllersRef.current[parentNodeId] = controller;
+        const signal = controller.signal;
 
         await sendChatRequest(
           requestMessages,
@@ -591,8 +606,8 @@ export const useNodeOperations = ({
             });
           },
           (fullResponse, fullReasoning) => {
-            if (abortControllerRef.current?.signal === signal) {
-              abortControllerRef.current = null;
+            if (abortControllersRef.current[parentNodeId] === controller) {
+              delete abortControllersRef.current[parentNodeId];
             }
             const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
             const finalMessages = [...updatedMessages, { role: "assistant", content: parsed.content, thinking: parsed.thinking, model: selectedModel }];
@@ -607,10 +622,12 @@ export const useNodeOperations = ({
             }
           },
           (error) => {
-            if (abortControllerRef.current?.signal === signal) {
-              abortControllerRef.current = null;
+            if (abortControllersRef.current[parentNodeId] === controller) {
+              delete abortControllersRef.current[parentNodeId];
             }
-            console.error(error);
+            if (error.name !== "AbortError") {
+              console.error(error);
+            }
             if (error.name === "AbortError") {
               updateThisNode(parentNodeId, {
                 status: "complete",
@@ -717,16 +734,24 @@ export const useNodeOperations = ({
 
   // Internal function to regenerate a single node and return a promise
   const regenerateNodeAsync = useCallback(
-    (nodeId) => {
+    (nodeId, parentSignal) => {
       return new Promise(async (resolve) => {
-        if (abortControllerRef.current?.signal.aborted) {
+        if (parentSignal?.aborted) {
           resolve();
           return;
         }
-        if (!abortControllerRef.current) {
-          abortControllerRef.current = new AbortController();
+
+        let signal = parentSignal;
+        let controller = null;
+
+        if (!signal) {
+          if (abortControllersRef.current[nodeId]) {
+            abortControllersRef.current[nodeId].abort();
+          }
+          controller = new AbortController();
+          abortControllersRef.current[nodeId] = controller;
+          signal = controller.signal;
         }
-        const signal = abortControllerRef.current.signal;
         const currentNodes = nodesRef.current;
         const currentEdges = edgesRef.current;
 
@@ -919,8 +944,8 @@ export const useNodeOperations = ({
 
         try {
           await regenerateTurn(0);
-          if (abortControllerRef.current?.signal === signal) {
-            abortControllerRef.current = null;
+          if (controller && abortControllersRef.current[nodeId] === controller) {
+            delete abortControllersRef.current[nodeId];
           }
           updateThisNode(nodeId, {
             messages: currentMessages,
@@ -933,10 +958,12 @@ export const useNodeOperations = ({
           }
           resolve();
         } catch (error) {
-          if (abortControllerRef.current?.signal === signal) {
-            abortControllerRef.current = null;
+          if (controller && abortControllersRef.current[nodeId] === controller) {
+            delete abortControllersRef.current[nodeId];
           }
-          console.error(error);
+          if (error.name !== "AbortError") {
+            console.error(error);
+          }
           if (error.name === "AbortError") {
             updateThisNode(nodeId, {
               messages: currentMessages,
@@ -959,8 +986,12 @@ export const useNodeOperations = ({
   // Cascade regeneration to all descendants after a node is edited
   const cascadeRegenerateDescendants = useCallback(
     async (startNodeId) => {
-      if (cascadeActiveRef.current) return;
-      cascadeActiveRef.current = true;
+      if (activeCascadesRef.current.has(startNodeId)) return;
+      activeCascadesRef.current.add(startNodeId);
+
+      const controller = new AbortController();
+      abortControllersRef.current[startNodeId] = controller;
+      const signal = controller.signal;
 
       try {
         // Track all nodes that have been regenerated in this cascade
@@ -973,7 +1004,7 @@ export const useNodeOperations = ({
         let currentLevel = [startNodeId];
 
         while (currentLevel.length > 0) {
-          if (abortControllerRef.current?.signal.aborted) {
+          if (signal.aborted) {
             break;
           }
           const nextLevel = [];
@@ -1007,18 +1038,21 @@ export const useNodeOperations = ({
 
           // Regenerate all nodes in this level sequentially
           for (const childId of nextLevel) {
-            if (abortControllerRef.current?.signal.aborted) {
+            if (signal.aborted) {
               break;
             }
             processedNodes.add(childId);
             affectedNodes.add(childId);
-            await regenerateNodeAsync(childId);
+            await regenerateNodeAsync(childId, signal);
           }
 
           currentLevel = nextLevel;
         }
       } finally {
-        cascadeActiveRef.current = false;
+        if (abortControllersRef.current[startNodeId] === controller) {
+          delete abortControllersRef.current[startNodeId];
+        }
+        activeCascadesRef.current.delete(startNodeId);
       }
     },
     [regenerateNodeAsync]
@@ -1126,7 +1160,9 @@ export const useNodeOperations = ({
             cascadeRegenerateDescendants(nodeId);
           },
           (error) => {
-            console.error(error);
+            if (error.name !== "AbortError") {
+              console.error(error);
+            }
             updateThisNode(nodeId, {
               error: error.message,
               status: "error",
@@ -1211,7 +1247,9 @@ export const useNodeOperations = ({
           cascadeRegenerateDescendants(nodeId);
         },
         (error) => {
-          console.error(error);
+          if (error.name !== "AbortError") {
+            console.error(error);
+          }
           updateThisNode(nodeId, {
             error: error.message,
             status: "error",
@@ -1254,6 +1292,14 @@ export const useNodeOperations = ({
 
       const descendants = getDescendants(nodeId, nodes, edges);
       const nodesToRemove = new Set([nodeId, ...descendants]);
+
+      // Abort controllers for deleted nodes
+      nodesToRemove.forEach((id) => {
+        if (abortControllersRef.current[id]) {
+          abortControllersRef.current[id].abort();
+          delete abortControllersRef.current[id];
+        }
+      });
 
       const parentEdge = edges.find((e) => e.target === nodeId);
       const colonIndex = nodeId.indexOf(":");
@@ -1666,9 +1712,12 @@ export const useNodeOperations = ({
         userMessageObj,
       ];
 
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-      abortControllerRef.current = new AbortController();
-      const signal = abortControllerRef.current.signal;
+      if (abortControllersRef.current[newNodeId]) {
+        abortControllersRef.current[newNodeId].abort();
+      }
+      const controller = new AbortController();
+      abortControllersRef.current[newNodeId] = controller;
+      const signal = controller.signal;
 
       await sendChatRequest(
         conversationMessages,
@@ -1684,8 +1733,8 @@ export const useNodeOperations = ({
           });
         },
         (fullResponse, fullReasoning) => {
-          if (abortControllerRef.current?.signal === signal) {
-            abortControllerRef.current = null;
+          if (abortControllersRef.current[newNodeId] === controller) {
+            delete abortControllersRef.current[newNodeId];
           }
           const parsed = parseThinkingAndContent(fullResponse, fullReasoning);
           const finalMessages = [
@@ -1700,10 +1749,12 @@ export const useNodeOperations = ({
           generateNodeTitle(newNodeId, finalMessages, targetChatId);
         },
         (error) => {
-          if (abortControllerRef.current?.signal === signal) {
-            abortControllerRef.current = null;
+          if (abortControllersRef.current[newNodeId] === controller) {
+            delete abortControllersRef.current[newNodeId];
           }
-          console.error(error);
+          if (error.name !== "AbortError") {
+            console.error(error);
+          }
           if (error.name === "AbortError") {
             updateThisNode(newNodeId, {
               status: "complete",

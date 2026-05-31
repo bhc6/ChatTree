@@ -207,6 +207,7 @@ const InputPanel = ({
 
     if (localMessage.trim() || attachedFiles.length > 0) {
       onSubmit(localMessage.trim(), attachedFiles);
+      setLocalMessage("");
     }
   };
 
@@ -219,6 +220,7 @@ const InputPanel = ({
 
       if (localMessage.trim() || attachedFiles.length > 0) {
         onSubmit(localMessage.trim(), attachedFiles);
+        setLocalMessage("");
       }
     }
     // Escape cancels pending merge

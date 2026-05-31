@@ -181,6 +181,18 @@ npm run deploy
 
 ---
 
+## 🔒 安全与隐私 / Security & Privacy
+
+ChatTree 极其重视用户的数据安全和接口 Key 隐私。我们采用了完全去中心化的客户端安全架构：
+
+* **API Key 隔离与本地化**：您的 API Key 存储在浏览器独立的 `localStorage` 键中，与聊天对话数据分离。若在设置中取消勾选“🙈 持久化保存”，Key 将在页面关闭后自动擦除，绝不经过任何中转服务器。
+* **HTML 预览沙箱隔离**：内置的 HTML 预览标签页使用完全不带 `allow-same-origin` 权限的沙箱化 `<iframe>` (`sandbox="allow-scripts"`) 渲染。即使预览的 HTML 代码中含有恶意脚本，也无法跨域读取父窗口的 `localStorage`，确保 API Key 安全无虞。
+* **SVG 安全渲染**：SVG 预览不再使用 `dangerouslySetInnerHTML` 渲染，而是自动转换为 URL 编码的 `<img>` 标签动态加载。根据现代浏览器安全标准，图片标签内的 SVG 会被强制禁用任何脚本的执行，彻底杜绝 XSS 注入。
+* **Mermaid 图表严格防御**：图表渲染器强制开启 strict 级安全策略 (`securityLevel: "strict"`)，任何恶意注入的 `<script>` 标签或 HTML 标签事件都会被自动转义或滤除。
+* **无状态分享安全**：分享链接完全在本地使用 gzip 压缩和 URL Base64 编码，无需任何后端数据库存储，数据在传输过程中对外界是不可知的。
+
+---
+
 ## 📄 License
 
 [Apache-2.0](LICENSE)

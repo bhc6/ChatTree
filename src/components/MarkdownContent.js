@@ -82,16 +82,14 @@ const ensurePrism = (mode) => {
 // Whitelist of standard HTML tags that are safe for markdown-to-jsx to parse.
 // Custom tags like <assistant>, <thought>, <system>, <user> are not in this list and will be escaped.
 const ALLOWED_HTML_TAGS = new Set([
-  "a", "abbr", "address", "area", "article", "aside", "audio", "b", "base", "bdi", "bdo", "blockquote",
-  "body", "br", "button", "canvas", "caption", "cite", "code", "col", "colgroup", "data", "datalist",
-  "dd", "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption",
-  "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr",
-  "html", "i", "iframe", "img", "input", "ins", "kbd", "label", "legend", "li", "link", "main", "map",
-  "mark", "menu", "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option", "output",
-  "p", "picture", "portal", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script",
-  "search", "section", "select", "slot", "small", "source", "span", "strong", "style", "sub",
-  "summary", "sup", "table", "tbody", "td", "template", "textarea", "tfoot", "th", "thead", "time",
-  "title", "tr", "track", "u", "ul", "var", "video", "wbr"
+  "a", "abbr", "address", "article", "aside", "audio", "b", "bdi", "bdo", "blockquote",
+  "br", "caption", "cite", "code", "col", "colgroup", "data", "dd", "del", "details",
+  "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3",
+  "h4", "h5", "h6", "header", "hr", "i", "img", "ins", "kbd", "label", "legend", "li",
+  "main", "mark", "meter", "nav", "ol", "output", "p", "picture", "pre", "progress",
+  "q", "rp", "rt", "ruby", "s", "samp", "section", "small", "source", "span", "strong",
+  "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead",
+  "time", "tr", "track", "u", "ul", "var", "video", "wbr"
 ]);
 
 const escapeCustomTags = (text) => {
@@ -436,7 +434,7 @@ const CustomCodeBlock = ({ language, code }) => {
         window.mermaid.initialize({
           startOnLoad: false,
           theme: mode === "light" ? "default" : "dark",
-          securityLevel: "loose",
+          securityLevel: "strict",
         });
 
         // Clean up code: remove any leading/trailing spaces
@@ -631,21 +629,20 @@ const CustomCodeBlock = ({ language, code }) => {
               )
             ) : isSvg ? (
               <Box
+                component="img"
+                src={`data:image/svg+xml,${encodeURIComponent(cleanCode)}`}
                 sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  minHeight: 180,
+                  display: "block",
+                  mx: "auto",
+                  maxWidth: "100%",
+                  maxHeight: 400,
+                  objectFit: "contain",
                   p: 2,
                   backgroundColor: "#ffffff",
                   borderRadius: radius.sm,
                   border: `1px solid ${colors.border.secondary}`,
-                  "& svg": {
-                    maxWidth: "100%",
-                    maxHeight: 400,
-                  },
                 }}
-                dangerouslySetInnerHTML={{ __html: code }}
+                alt="SVG Preview"
               />
             ) : isHtml ? (
               <Box
