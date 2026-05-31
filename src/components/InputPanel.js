@@ -56,6 +56,11 @@ const InputPanel = ({
   const [isFocused, setIsFocused] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
   const dragCounterRef = React.useRef(0);
+  const [localMessage, setLocalMessage] = React.useState(inputMessage || "");
+
+  React.useEffect(() => {
+    setLocalMessage(inputMessage || "");
+  }, [inputMessage]);
 
   // Translation dictionary
   const t = {
@@ -200,8 +205,8 @@ const InputPanel = ({
     const isParsing = attachedFiles.some((f) => f.status === "parsing");
     if (isParsing) return; // Prevent submission while parsing is in progress
 
-    if (inputMessage.trim() || attachedFiles.length > 0) {
-      onSubmit(inputMessage.trim(), attachedFiles);
+    if (localMessage.trim() || attachedFiles.length > 0) {
+      onSubmit(localMessage.trim(), attachedFiles);
     }
   };
 
@@ -212,8 +217,8 @@ const InputPanel = ({
       const isParsing = attachedFiles.some((f) => f.status === "parsing");
       if (isParsing) return;
 
-      if (inputMessage.trim() || attachedFiles.length > 0) {
-        onSubmit(inputMessage.trim(), attachedFiles);
+      if (localMessage.trim() || attachedFiles.length > 0) {
+        onSubmit(localMessage.trim(), attachedFiles);
       }
     }
     // Escape cancels pending merge
@@ -624,12 +629,15 @@ const InputPanel = ({
           multiline
           minRows={1}
           maxRows={MAX_ROWS}
-          value={inputMessage}
-          onChange={(e) => onInputChange(e.target.value)}
+          value={localMessage}
+          onChange={(e) => setLocalMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => {
+            setIsFocused(false);
+            onInputChange?.(localMessage);
+          }}
           fullWidth
           autoComplete="off"
           autoCorrect="off"
@@ -686,7 +694,7 @@ const InputPanel = ({
         ) : (
           <IconButton
             type="submit"
-            disabled={isParsingFiles || (!inputMessage.trim() && attachedFiles.length === 0)}
+            disabled={isParsingFiles || (!localMessage.trim() && attachedFiles.length === 0)}
             sx={components.buttonPrimary}
           >
             <KeyboardReturnIcon fontSize="small" />
