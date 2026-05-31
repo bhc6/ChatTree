@@ -477,12 +477,12 @@ const CustomCodeBlock = ({ language, code }) => {
   return (
     <Box
       sx={{
-        border: `1px solid ${colors.border.primary}`,
-        borderRadius: radius.lg,
+        border: `1px solid ${colors.border.secondary}`,
+        borderRadius: radius.md,
         overflow: "hidden",
         my: 2,
         backgroundColor: colors.bg.secondary,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+        boxShadow: "none",
       }}
     >
       {/* Codeblock Header */}
@@ -494,7 +494,7 @@ const CustomCodeBlock = ({ language, code }) => {
           px: 2,
           py: 0.75,
           backgroundColor: colors.bg.tertiary,
-          borderBottom: `1px solid ${colors.border.primary}`,
+          borderBottom: `1px solid ${colors.border.secondary}`,
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
