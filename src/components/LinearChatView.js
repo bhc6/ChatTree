@@ -845,7 +845,7 @@ const LinearChatView = ({
         >
           <Box sx={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <ArrowDownwardIcon sx={{ fontSize: 18 }} />
-            {lastMessageStatus === "loading" && (
+            {lastMsgStatus === "loading" && (
               <Box
                 sx={{
                   position: "absolute",
