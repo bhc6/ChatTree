@@ -8,8 +8,6 @@ Conversations are displayed as a tree. Branch off at any point, merge paths back
 
 ![ChatTree screenshot](doc/sc.png)
 
-🌐 **Live demo**: [chattree.xyz](https://chattree.xyz)
-
 ---
 
 ## ✨ 核心功能 / Feature Highlights

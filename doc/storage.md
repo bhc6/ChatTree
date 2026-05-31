@@ -108,7 +108,7 @@ ChatState JSON → UTF-8 编码 → pako.deflate 压缩 → Base64 → URL-safe 
 解码路径相反。生成的 URL 格式：
 
 ```
-https://chattree.xyz/#shared=<base64url>
+https://yourdomain.com/#shared=<base64url>
 ```
 
 > ⚠️ 对于大型对话树，URL 可能超过几百 KB，部分邮件客户端或 IM 工具会截断长 URL。

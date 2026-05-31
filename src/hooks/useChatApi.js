@@ -199,7 +199,7 @@ export const useChatApi = (settings, options = {}) => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
-            "HTTP-Referer": "https://chattree.xyz", // OpenRouter app attribution
+            "HTTP-Referer": "https://github.com/bhc6/ChatTree", // OpenRouter app attribution
             "X-Title": "ChatTree",
           },
           body: JSON.stringify(requestBody),
