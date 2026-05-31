@@ -16,6 +16,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import MarkdownContent from "./MarkdownContent";
 import { useAppTheme } from "../styles/ThemeContext";
 import { renderMessageContent, getDisplayContent } from "../utils/treeUtils";
@@ -25,10 +26,14 @@ const ThinkingProcess = ({ thinking, language, isStreaming }) => {
   const [collapsed, setCollapsed] = useState(true);
   const [hasManuallyToggled, setHasManuallyToggled] = useState(false);
 
-  // Auto-expand when streaming and there is content, unless user manually toggled it
+  // Auto-expand during streaming and auto-collapse when done (unless manually toggled)
   useEffect(() => {
-    if (isStreaming && thinking && !hasManuallyToggled) {
-      setCollapsed(false);
+    if (thinking && !hasManuallyToggled) {
+      if (isStreaming) {
+        setCollapsed(false);
+      } else {
+        setCollapsed(true);
+      }
     }
   }, [isStreaming, thinking, hasManuallyToggled]);
 
@@ -105,7 +110,15 @@ const ThinkingProcess = ({ thinking, language, isStreaming }) => {
         </Typography>
       </Box>
 
-      {!collapsed && (
+      <Box
+        sx={{
+          maxHeight: collapsed ? "0px" : "2000px",
+          opacity: collapsed ? 0 : 1,
+          overflow: "hidden",
+          transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out",
+          mt: collapsed ? 0 : 0.5,
+        }}
+      >
         <Typography
           variant="body2"
           sx={{
@@ -115,12 +128,11 @@ const ThinkingProcess = ({ thinking, language, isStreaming }) => {
             lineHeight: 1.5,
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
-            mt: 0.5,
           }}
         >
           {thinking}
         </Typography>
-      )}
+      </Box>
     </Box>
   );
 };
@@ -242,11 +254,14 @@ const LinearChatView = ({
   const [editMessageText, setEditMessageText] = useState("");
   const [copiedId, setCopiedId] = useState(null);
   const [activeMessageId, setActiveMessageId] = useState(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const isProgrammaticScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef(null);
   const isFirstRenderRef = useRef(true);
+  const isNearBottomRef = useRef(true);
 
   // Helper to trigger a programmatic scroll without being interrupted by handleScroll updates
   const startProgrammaticScroll = (scrollAction) => {
@@ -305,12 +320,12 @@ const LinearChatView = ({
     }
   }, [selectedNodeId]);
 
-  // Also scroll when the last message is loading/updating (always instant to feel snappy and keep up with text generation chunks)
+  // Also scroll when the last message is loading/updating (only if user is already looking at the bottom)
   const lastNode = path[path.length - 1];
   const lastMessageContent = lastNode?.data?.assistantMessage || "";
   const lastMessageStatus = lastNode?.data?.status;
   useEffect(() => {
-    if (messagesEndRef.current && lastMessageStatus === "loading") {
+    if (messagesEndRef.current && lastMessageStatus === "loading" && isNearBottomRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "auto" });
     }
   }, [lastMessageContent, lastMessageStatus]);
@@ -341,6 +356,14 @@ const LinearChatView = ({
     setTimeout(() => {
       setCopiedId(null);
     }, 2000);
+  };
+
+  const handleScrollToBottom = () => {
+    startProgrammaticScroll(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
+    isNearBottomRef.current = true;
+    setShowScrollButton(false);
   };
 
   const handleNodeClick = (nodeId) => {
@@ -411,12 +434,18 @@ const LinearChatView = ({
 
 
 
-  // Track scroll position to update active message dot
+  // Track scroll position to update active message dot and scroll-to-bottom button
   const handleScroll = () => {
     if (isProgrammaticScrollingRef.current) return;
     if (!chatContainerRef.current) return;
     const container = chatContainerRef.current;
     const containerRect = container.getBoundingClientRect();
+
+    // Check if scrolled near the bottom (120px threshold)
+    const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const isNear = scrollBottom <= 120;
+    isNearBottomRef.current = isNear;
+    setShowScrollButton(!isNear);
 
     let closestMsgId = null;
     let minDistance = Infinity;
@@ -784,6 +813,60 @@ const LinearChatView = ({
         )}
         <div ref={messagesEndRef} />
       </Box>
+
+      {/* Floating scroll to bottom button (Grok/ChatGPT inspired) */}
+      {showScrollButton && (
+        <IconButton
+          onClick={handleScrollToBottom}
+          sx={{
+            position: "absolute",
+            bottom: 24,
+            right: userMessages.length > 0 ? { xs: 24, md: 64 } : 24,
+            zIndex: 1000,
+            backgroundColor: colors.bg.secondary,
+            border: `1px solid ${colors.border.primary}`,
+            color: colors.text.primary,
+            boxShadow: mode === "light" ? "0 4px 12px rgba(0,0,0,0.08)" : "0 4px 12px rgba(0,0,0,0.3)",
+            width: 36,
+            height: 36,
+            transition: "all 0.2s ease",
+            "&:hover": {
+              backgroundColor: colors.bg.hover,
+              borderColor: colors.accent.blue,
+              transform: "translateY(-2px)",
+            },
+            animation: "bounceIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) both",
+            "@keyframes bounceIn": {
+              "0%": { transform: "scale(0.3) translateY(20px)", opacity: 0 },
+              "100%": { transform: "scale(1) translateY(0)", opacity: 1 },
+            },
+          }}
+        >
+          <Box sx={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ArrowDownwardIcon sx={{ fontSize: 18 }} />
+            {lastMessageStatus === "loading" && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: colors.accent.blue,
+                  boxShadow: `0 0 0 2px ${colors.bg.secondary}`,
+                  animation: "pulsing-badge 1.5s infinite ease-in-out",
+                  "@keyframes pulsing-badge": {
+                    "0%": { transform: "scale(0.8)", opacity: 0.5 },
+                    "50%": { transform: "scale(1.2)", opacity: 1 },
+                    "100%": { transform: "scale(0.8)", opacity: 0.5 },
+                  },
+                }}
+              />
+            )}
+          </Box>
+        </IconButton>
+      )}
     </Box>
 
     {/* Vertical Timeline Navigation Bar (Grok-inspired Milestones Outline) */}
