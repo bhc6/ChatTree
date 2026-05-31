@@ -1084,9 +1084,7 @@ const LinearChatView = ({
                     sx={{
                       cursor: "pointer",
                       display: "flex",
-                      flexDirection: "row",
                       alignItems: "center",
-                      justifyContent: "flex-end",
                       height: 24,
                       position: "relative",
                       width: "100%",
@@ -1096,6 +1094,8 @@ const LinearChatView = ({
                     {/* Text Snippet Outline (Fades in when timeline is expanded) */}
                     <Box
                       sx={{
+                        position: "absolute",
+                        right: 32, // Left of the dot container (20px dot + 12px gap)
                         opacity: isTimelineHovered ? 1 : 0,
                         transform: isTimelineHovered ? "translateX(0)" : "translateX(-8px)",
                         transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
@@ -1110,11 +1110,12 @@ const LinearChatView = ({
                           : mode === "light" 
                           ? "rgba(0, 0, 0, 0.65)" 
                           : "rgba(255, 255, 255, 0.65)",
-                        mr: "12px",
                         maxWidth: 160,
                         display: "flex",
                         alignItems: "center",
                         gap: 0.5,
+                        textAlign: "right",
+                        justifyContent: "flex-end",
                       }}
                     >
                       {isMerged && (
@@ -1135,13 +1136,14 @@ const LinearChatView = ({
                     {/* Milestone Tick Dot Container */}
                     <Box
                       sx={{
+                        position: "absolute",
+                        right: 6, // Pinned so dot center is at exactly right: 16px (matches track at right: 15px with width: 2)
                         width: 20,
                         height: 20,
                         borderRadius: "50%",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        mr: "5px", // Spaced so dot center lines up exactly with right:15px
                         transition: "transform 0.2s ease",
                         "&:hover": {
                           transform: "scale(1.2)",
