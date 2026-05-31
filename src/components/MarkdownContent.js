@@ -7,6 +7,11 @@ import { useAppTheme } from "../styles/ThemeContext";
 import { loadScript } from "../utils/fileParser";
 import { useSmoothText } from "../hooks/useSmoothText";
 
+const decodeHtmlEntities = (str) => {
+  if (typeof str !== "string") return str;
+  return str.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+};
+
 const MONOSPACE_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
 // ─── KaTeX loader (singleton promise) ───────────────────────────────────────
@@ -144,8 +149,10 @@ const splitMathAndText = (raw) => {
   const CODE_RE = /(```[\s\S]*?(?:```|$)|`[^`\n]*?(?:`|$))/g;
   
   let tempRaw = raw.replace(CODE_RE, (match) => {
+    // Escape all '<' and '>' inside code blocks and inline code to prevent markdown-to-jsx from parsing them as HTML tags
+    const escapedMatch = match.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const placeholder = `___CODE_PLACEHOLDER_${placeholders.length}___`;
-    placeholders.push({ placeholder, original: match });
+    placeholders.push({ placeholder, original: escapedMatch });
     return placeholder;
   });
 
@@ -399,7 +406,8 @@ const CustomCodeBlock = ({ language, code }) => {
 
   // Clean code and check cursor
   const cleanCode = useMemo(() => {
-    return code.endsWith("▋") ? code.slice(0, -1) : code;
+    const raw = code.endsWith("▋") ? code.slice(0, -1) : code;
+    return decodeHtmlEntities(raw);
   }, [code]);
 
   const showCursor = useMemo(() => {
