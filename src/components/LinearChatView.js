@@ -20,11 +20,13 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import MarkdownContent from "./MarkdownContent";
 import { useAppTheme } from "../styles/ThemeContext";
 import { renderMessageContent, getDisplayContent } from "../utils/treeUtils";
+import { useSmoothText } from "../hooks/useSmoothText";
 
 const ThinkingProcess = ({ thinking, language, isStreaming }) => {
   const { colors } = useAppTheme();
   const [collapsed, setCollapsed] = useState(true);
   const [hasManuallyToggled, setHasManuallyToggled] = useState(false);
+  const displayedThinking = useSmoothText(thinking, isStreaming);
 
   // Auto-expand during streaming and auto-collapse when done (unless manually toggled)
   useEffect(() => {
@@ -130,7 +132,7 @@ const ThinkingProcess = ({ thinking, language, isStreaming }) => {
             wordBreak: "break-word",
           }}
         >
-          {thinking}
+          {displayedThinking}
         </Typography>
       </Box>
     </Box>

@@ -5,6 +5,7 @@ import { Box, Typography, IconButton } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useAppTheme } from "../styles/ThemeContext";
 import { loadScript } from "../utils/fileParser";
+import { useSmoothText } from "../hooks/useSmoothText";
 
 const MONOSPACE_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
@@ -817,12 +818,13 @@ const getBoxSx = ({ colors: c, radius: r }) => ({
 
 const MarkdownContent = ({ children, className, sx = {}, isStreaming = false }) => {
   const theme = useAppTheme();
+  const displayedText = useSmoothText(children, isStreaming);
   return (
     <Box
       className={className}
       sx={{ ...getBoxSx(theme), ...sx }}
     >
-      <MathAwareMarkdown content={typeof children === "string" ? children : ""} isStreaming={isStreaming} />
+      <MathAwareMarkdown content={typeof displayedText === "string" ? displayedText : ""} isStreaming={isStreaming} />
     </Box>
   );
 };
