@@ -322,13 +322,19 @@ const LinearChatView = ({
 
   // Also scroll when the last message is loading/updating (only if user is already looking at the bottom)
   const lastNode = path[path.length - 1];
-  const lastMessageContent = lastNode?.data?.assistantMessage || "";
-  const lastMessageStatus = lastNode?.data?.status;
+  const lastNodeMessages = lastNode?.data?.messages;
+  const lastMsg = lastNodeMessages && lastNodeMessages.length > 0
+    ? lastNodeMessages[lastNodeMessages.length - 1]
+    : null;
+  const lastMsgContent = lastMsg?.content || lastNode?.data?.assistantMessage || "";
+  const lastMsgThinking = lastMsg?.thinking || lastNode?.data?.thinking || "";
+  const lastMsgStatus = lastNode?.data?.status;
+
   useEffect(() => {
-    if (messagesEndRef.current && lastMessageStatus === "loading" && isNearBottomRef.current) {
+    if (messagesEndRef.current && lastMsgStatus === "loading" && isNearBottomRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "auto" });
     }
-  }, [lastMessageContent, lastMessageStatus]);
+  }, [lastMsgContent, lastMsgThinking, lastMsgStatus]);
 
   const handleStartEdit = (nodeId, content, messageIndex, e) => {
     e.stopPropagation();
@@ -716,15 +722,6 @@ const LinearChatView = ({
                         </Typography>
                         <FilePreviews files={msg.files} />
                       </Box>
-                    ) : msg.status === "loading" && !msg.content ? (
-                      <Box display="flex" flexDirection="column" gap={1}>
-                        <ThinkingProcess
-                          thinking={msg.thinking}
-                          language={language}
-                          isStreaming={true}
-                        />
-                        {!msg.thinking && <TypingIndicator />}
-                      </Box>
                     ) : msg.error ? (
                       <Typography
                         variant="body2"
@@ -733,15 +730,19 @@ const LinearChatView = ({
                         Error: {msg.error}
                       </Typography>
                     ) : (
-                      <Box sx={{ position: "relative" }}>
+                      <Box sx={{ position: "relative", display: "flex", flexDirection: "column", gap: 1 }}>
                         <ThinkingProcess
                           thinking={msg.thinking}
                           language={language}
                           isStreaming={msg.status === "loading"}
                         />
-                        <MarkdownContent isStreaming={msg.status === "loading"}>
-                          {getDisplayContent(msg.content)}
-                        </MarkdownContent>
+                        {msg.content ? (
+                          <MarkdownContent isStreaming={msg.status === "loading"}>
+                            {getDisplayContent(msg.content)}
+                          </MarkdownContent>
+                        ) : (
+                          msg.status === "loading" && !msg.thinking && <TypingIndicator />
+                        )}
                       </Box>
                     )}
                   </Paper>
