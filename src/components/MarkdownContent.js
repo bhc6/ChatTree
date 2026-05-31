@@ -149,7 +149,7 @@ const splitMathAndText = (raw) => {
   });
 
   // Replace ▋ with HTML span outside code blocks
-  tempRaw = tempRaw.replace(/▋/g, '<span className="streaming-cursor">▋</span>');
+  tempRaw = tempRaw.replace(/▋/g, '<span class="streaming-cursor">▋</span>');
 
   const segments = [];
   let lastIndex = 0;
